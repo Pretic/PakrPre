@@ -501,9 +501,101 @@ footer{border-top-color:var(--border);color:var(--faint)}
 [data-theme="dark"] .nav-logo-icon svg{stroke:#0d1117}
 [data-theme="dark"] .step-num{background:#e6edf3;color:#0d1117}
 
+
+#dlActions{display:grid;gap:10px;margin-top:10px}
+.apk-card{border:1px solid #ececec;border-radius:14px;background:#fafafa;overflow:hidden}
+.apk-card.open{background:#fff;border-color:#e5e5e5;box-shadow:0 8px 22px rgba(0,0,0,.04)}
+.apk-trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 14px;background:transparent;border:none}
+.apk-trigger-left{display:flex;align-items:center;gap:10px;min-width:0;font-size:14px;font-weight:600;color:#111}
+.apk-trigger-badge{display:inline-flex;align-items:center;justify-content:center;height:22px;padding:0 8px;border-radius:999px;background:#111;color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.apk-trigger-arrow{width:18px;height:18px;stroke:#999;stroke-width:2;fill:none;flex:0 0 auto;transition:transform .2s ease}
+.apk-card.open .apk-trigger-arrow{transform:rotate(180deg)}
+.apk-actions{display:none;grid-template-columns:1fr;gap:8px;padding:0 12px 12px}
+.apk-card.open .apk-actions{display:grid}
+.apk-actions button{height:40px;border-radius:10px;border:1px solid #e8e8e8;background:#fff;color:#111;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.apk-actions button svg{flex:0 0 auto}
+.dl-btn{background:#111!important;color:#fff!important;border-color:#111!important}
+.cp-btn.copied{background:#ecfdf3!important;color:#15803d!important;border-color:#bbf7d0!important}
+@media (min-width: 520px){.apk-actions{grid-template-columns:repeat(3,1fr)}}
+
+
+/* ── 免责声明弹窗 ── */
+#disclaimerOverlay{display:flex;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px}
+#disclaimerBox{background:#fff;border-radius:18px;max-width:480px;width:100%;padding:0;box-shadow:0 24px 64px rgba(0,0,0,0.28);display:flex;flex-direction:column;max-height:90vh;overflow:hidden}
+#disclaimerBox .disc-head{padding:24px 24px 0;flex-shrink:0}
+#disclaimerBox h2{font-size:17px;font-weight:700;color:#111;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+/* CSS emoji 替代 ⚠️ */
+#disclaimerBox h2::before{content:'';display:inline-block;width:20px;height:20px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f59e0b' d='M12 2L1 21h22L12 2zm0 3.5L20.5 19h-17L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z'/%3E%3C/svg%3E") center/contain no-repeat;flex-shrink:0}
+#disclaimerBox .disc-subtitle{font-size:12px;color:#888;margin:4px 0 14px}
+/* 滚动区域 */
+#disclaimerBox .disc-body{font-size:13px;color:#444;line-height:1.8;padding:0 24px;overflow-y:auto;flex:1;min-height:0;max-height:340px;scroll-behavior:smooth}
+#disclaimerBox .disc-body p{margin:0 0 12px}
+#disclaimerBox .disc-body strong{color:#111}
+/* 滚动提示渐变 */
+#disclaimerBox .disc-body-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+#disclaimerBox .disc-scroll-hint{position:absolute;bottom:0;left:0;right:0;height:48px;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,1));pointer-events:none;transition:opacity .3s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px}
+#disclaimerBox .disc-scroll-hint span{font-size:11px;color:#aaa;animation:bounceDown 1.2s ease-in-out infinite}
+@keyframes bounceDown{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+/* 底部操作区 */
+#disclaimerBox .disc-foot{padding:14px 24px 20px;flex-shrink:0;border-top:1px solid #f0f0f0}
+#disclaimerBox .disc-scroll-tip{font-size:11px;color:#d97706;margin:0 0 12px;display:flex;align-items:center;gap:5px;transition:opacity .3s}
+/* CSS 图标替代 👇 */
+#disclaimerBox .disc-scroll-tip::before{content:'';display:inline-block;width:14px;height:14px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d97706' d='M12 16l-6-6h12l-6 6z'/%3E%3C/svg%3E") center/contain no-repeat;flex-shrink:0}
+#disclaimerBox .disc-actions{display:flex;gap:10px}
+#disclaimerBox .disc-decline{flex:1;padding:11px;border:1.5px solid #ddd;border-radius:10px;background:#fff;color:#555;font-size:14px;cursor:pointer;font-weight:500;transition:background .15s}
+#disclaimerBox .disc-decline:hover{background:#f5f5f5}
+#disclaimerBox .disc-accept{flex:2;padding:11px;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;transition:background .15s,opacity .15s}
+#disclaimerBox .disc-accept:not(.unlocked){background:#ccc;color:#fff;cursor:not-allowed;opacity:.7}
+#disclaimerBox .disc-accept.unlocked{background:#111;color:#fff}
+#disclaimerBox .disc-accept.unlocked:hover{background:#333}
+.disc-ban{display:inline-block;width:13px;height:13px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='%23ef4444'/%3E%3Cpath stroke='%23fff' stroke-width='2.5' stroke-linecap='round' d='M8 8l8 8M16 8l-8 8'/%3E%3C/svg%3E") center/contain no-repeat;vertical-align:middle;margin-right:4px;flex-shrink:0}
+
 </style>
 </head>
 <body>
+
+<!-- 免责声明弹窗（每次访问都显示，需滚动到底部才能同意） -->
+<div id="disclaimerOverlay">
+  <div id="disclaimerBox">
+    <div class="disc-head">
+      <h2>使用须知 &amp; 免责声明</h2>
+      <p class="disc-subtitle">请仔细阅读全部内容，滑动到底部后方可同意</p>
+    </div>
+    <div class="disc-body-wrap">
+      <div class="disc-body" id="discBody">
+        <p>本工具（以下简称"本工具"）由个人开发者提供，仅供<strong>技术学习、研究及个人合法用途</strong>，用于将合法网站快速封装为 Android 应用程序。</p>
+        <p><strong>禁止用途</strong></p>
+        <p>严禁将本工具用于以下任何用途：</p>
+        <p>
+          <!-- CSS ban icon -->
+          <span class="disc-ban"></span> 制作仿冒、钓鱼、诈骗类应用程序<br>
+          <span class="disc-ban"></span> 封装涉及赌博、色情、暴力或其他违法内容的网站<br>
+          <span class="disc-ban"></span> 冒充银行、支付平台、政府机构或其他正规机构<br>
+          <span class="disc-ban"></span> 侵犯他人知识产权、商标权或隐私权<br>
+          <span class="disc-ban"></span> 传播恶意软件、间谍软件或任何有害程序<br>
+          <span class="disc-ban"></span> 任何违反中华人民共和国及使用者所在地法律法规的行为
+        </p>
+        <p><strong>法律责任声明</strong></p>
+        <p>使用本工具打包的应用程序，其内容、用途及由此产生的<strong>一切法律责任均由使用者自行承担</strong>。本工具开发者不对任何滥用行为及其后果承担连带责任。</p>
+        <p><strong>监管与处置</strong></p>
+        <p>开发者保留对滥用行为进行举报的权利，并有权随时终止向违规用户提供服务。若发现使用本工具从事违法犯罪活动，开发者将积极配合相关执法机构的调查。</p>
+        <p style="color:#d97706;background:#fef9ee;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.7"><strong>警示：</strong>网络并非法外之地，利用技术工具实施诈骗属于刑事犯罪，将面临刑事追诉。请勿以身试法。</p>
+        <p style="font-size:11px;color:#bbb;text-align:center;padding-top:4px">— 已阅读至底部 —</p>
+      </div>
+      <div class="disc-scroll-hint" id="discScrollHint">
+        <span>向下滚动阅读全部内容</span>
+      </div>
+    </div>
+    <div class="disc-foot">
+      <p class="disc-scroll-tip" id="discScrollTip">请先滚动阅读全部内容</p>
+      <div class="disc-actions">
+        <button class="disc-decline" onclick="window.location.href='https://www.baidu.com'">不同意，离开</button>
+        <button class="disc-accept" id="discAcceptBtn" onclick="tryAcceptDisclaimer()" disabled>已读完，同意继续</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <nav>
   <a href="javascript:void(0)" class="nav-logo">
@@ -572,8 +664,8 @@ footer{border-top-color:var(--border);color:var(--faint)}
           </div>
           <div class="icon-field">
             <div class="field">
-              <label for="f_icon">图标 URL <span style="font-weight:400;color:#bbb;font-size:11px">（可选）</span></label>
-              <input type="url" id="f_icon" placeholder="留空则自动使用 /logo.jpg">
+              <label for="f_icon">图标 URL <span style="font-weight:400;color:#ef4444;font-size:11px">（必填）</span></label>
+              <input type="url" id="f_icon" placeholder="必须填写可直接访问的 PNG/JPG 图标地址">
             </div>
             <div class="icon-preview" id="iconPreview">
               <svg class="icon-preview-placeholder" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -640,7 +732,12 @@ footer{border-top-color:var(--border);color:var(--faint)}
 
 </div>
 
-<footer></footer>
+<footer>
+  <p style="font-size:12px;color:var(--faint);text-align:center;padding:12px 16px;line-height:1.6;max-width:600px;margin:0 auto">
+    本工具仅供合法用途。禁止用于制作诈骗、钓鱼或任何违法应用。使用者须对其打包内容承担全部法律责任。
+    <br>如发现滥用行为，开发者将配合相关执法机构处理。
+  </p>
+</footer>
 
 <script>
 const WORKER = '';
@@ -856,7 +953,7 @@ async function handleBuildClick(){
 
 function startPoll(runId, data, buildId=null, dispatchedAt=null){
   let elapsed = 0;
-  const MAX_WAIT = 900; // 最长等 15 分钟
+  const MAX_WAIT = 1800; // 最长等 30 分钟
   currentRunId = runId;
   pollTimer = setInterval(async ()=>{
     elapsed += 5;
@@ -961,8 +1058,9 @@ async function tryFetchArtifacts(runId, data){
       addHistory(fresh);
     } else {
       setDot('fail');
-      setTitle('超时', '构建时间过长，请前往 GitHub Actions 查看状态');
-      showErr('构建超时，可直接前往 <a href="https://github.com/ZhangShengFan/Pakr/actions" target="_blank" style="color:#111">GitHub Actions</a> 下载 Artifact');
+      setTitle('超时', '前端轮询超时，但构建可能已经完成');
+      const actionsUrl = runId ? `https://github.com/ZSFan888/APK/actions/runs/${runId}` : 'https://github.com/ZSFan888/APK/actions';
+      showErr(`前端等待超时，但构建可能已成功。请先打开 <a href="${actionsUrl}" target="_blank" style="color:#111">本次 GitHub Actions 运行</a> 下载 Artifact。`);
       setBusy(false);
     }
   } catch(e){
@@ -1052,28 +1150,37 @@ function renderDownloadButtons(data, runId){
     // 下载
     const dlBtn=document.createElement('button');
     dlBtn.type='button'; dlBtn.className='dl-btn';
-    dlBtn.innerHTML=DL_ICO+' 下载';
+    dlBtn.innerHTML=DL_ICO+' 下载 APK';
     dlBtn.addEventListener('click',()=>{ window.location.href=dlUrl; });
 
     // 二维码
     const qrBtn=document.createElement('button');
     qrBtn.type='button'; qrBtn.className='qr-btn';
-    qrBtn.innerHTML=QR_ICO+' 二维码';
+    qrBtn.innerHTML=QR_ICO+' 扫码下载';
     qrBtn.addEventListener('click',()=>{ showQR(new URL(dlUrl,window.location.href).href, label); });
 
     // 复制链接
     const cpBtn=document.createElement('button');
     cpBtn.type='button'; cpBtn.className='cp-btn';
     cpBtn.innerHTML=CP_ICO+' 复制链接';
-    cpBtn.addEventListener('click',()=>{
+    cpBtn.addEventListener('click',(e)=>{
+      e.preventDefault();
+      e.stopPropagation();
       const fullUrl=new URL(dlUrl,window.location.href).href;
       const done=()=>{
         cpBtn.innerHTML=OK_ICO+' 已复制';
         cpBtn.classList.add('copied');
         setTimeout(()=>{ cpBtn.innerHTML=CP_ICO+' 复制链接'; cpBtn.classList.remove('copied'); },2000);
       };
-      if(navigator.clipboard){ navigator.clipboard.writeText(fullUrl).then(done).catch(()=>fallbackCopy(fullUrl,done)); }
-      else{ fallbackCopy(fullUrl,done); }
+      const fail=()=>{
+        cpBtn.innerHTML=CP_ICO+' 复制失败';
+        setTimeout(()=>{ cpBtn.innerHTML=CP_ICO+' 复制链接'; },2000);
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(fullUrl).then(done).catch(()=>fallbackCopy(fullUrl,done,fail));
+      } else {
+        fallbackCopy(fullUrl,done,fail);
+      }
     });
 
     actions.appendChild(dlBtn);
@@ -1084,12 +1191,20 @@ function renderDownloadButtons(data, runId){
     dlActions.appendChild(card);
   }
 
-  function fallbackCopy(text,cb){
+  function fallbackCopy(text,cb,fail){
     const t=document.createElement('textarea');
-    t.value=text; t.style.cssText='position:fixed;opacity:0';
-    document.body.appendChild(t); t.focus(); t.select();
-    try{ document.execCommand('copy'); cb(); }catch(e){}
+    t.value=text;
+    t.setAttribute('readonly','');
+    t.style.cssText='position:fixed;top:0;left:-9999px;opacity:0;pointer-events:none';
+    document.body.appendChild(t);
+    t.focus();
+    t.select();
+    t.setSelectionRange(0, t.value.length);
+    let ok=false;
+    try{ ok=document.execCommand('copy'); }catch(e){ ok=false; }
     document.body.removeChild(t);
+    if(ok){ cb && cb(); }
+    else if(fail){ fail(); }
   }
 
   if(artifacts.length===0){
@@ -1305,5 +1420,51 @@ function updateThemeIcon(dark){
   });
 })();
 </script>
+
+<script>
+// 免责声明：每次访问都显示（浏览器），App 内访问跳过
+(function(){
+  // App 内通过 WebView 注入了 window.__IN_APP__，跳过弹窗
+  if(window.__IN_APP__){
+    var overlay=document.getElementById('disclaimerOverlay');
+    if(overlay) overlay.style.display='none';
+    return;
+  }
+  var body = document.getElementById('discBody');
+  var hint = document.getElementById('discScrollHint');
+  var tip  = document.getElementById('discScrollTip');
+  var btn  = document.getElementById('discAcceptBtn');
+  if(!body) return;
+
+  function checkScrolled(){
+    var atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 8;
+    if(atBottom){
+      if(hint) hint.style.opacity = '0';
+      if(tip)  tip.style.opacity  = '0';
+      if(btn){ btn.disabled = false; btn.classList.add('unlocked'); }
+    }
+  }
+
+  body.addEventListener('scroll', checkScrolled);
+  // 内容很短时直接解锁
+  setTimeout(function(){
+    if(body.scrollHeight <= body.clientHeight + 8) checkScrolled();
+  }, 200);
+})();
+
+function tryAcceptDisclaimer(){
+  var btn = document.getElementById('discAcceptBtn');
+  if(!btn || btn.disabled) return;
+  acceptDisclaimer();
+}
+
+function acceptDisclaimer(){
+  var el=document.getElementById('disclaimerOverlay');
+  if(el){ el.style.opacity='0'; el.style.transition='opacity 0.3s'; setTimeout(function(){ el.style.display='none'; },300); }
+}
+</script>
+
 </body>
 </html>
+
+<!-- deploy: 20260502-1138-index-fix -->
