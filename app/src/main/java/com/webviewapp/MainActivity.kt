@@ -39,6 +39,7 @@ class MainActivity : AppCompatActivity() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var overlayVisible = false
+    private var elementBlockerScript: String? = null
 
     private val dotsFrames = arrayOf("", ".", "..", "...")
     private var dotsIndex = 0
@@ -55,6 +56,9 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (NO_SCREENSHOT.equals("true", ignoreCase = true)) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        }
         @Suppress("DEPRECATION")
         window.setFlags(
             android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN or
@@ -80,7 +84,6 @@ class MainActivity : AppCompatActivity() {
         swipeRefresh.setOnRefreshListener {
             webView.reload()
         }
-        showDisclaimerIfNeeded()
         showOverlay()
         setupWebView()
     }
@@ -111,6 +114,7 @@ class MainActivity : AppCompatActivity() {
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
                 fetchThemeColor(view)
+                injectElementBlocker(view)
             }
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -188,10 +192,41 @@ class MainActivity : AppCompatActivity() {
                 } catch (e: Exception) {}
             }
         }, "ThemeBridge")
-        // 在 UserAgent 中加入 App 标识，网页端据此跳过免责声明弹窗
+        webView.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun getRules(host: String): String {
+                return getSharedPreferences("element_blocker", Context.MODE_PRIVATE)
+                    .getString(normalizeRuleHost(host), "[]") ?: "[]"
+            }
+
+            @JavascriptInterface
+            fun saveRules(host: String, rulesJson: String) {
+                getSharedPreferences("element_blocker", Context.MODE_PRIVATE)
+                    .edit()
+                    .putString(normalizeRuleHost(host), rulesJson.take(50_000))
+                    .apply()
+            }
+
+            @JavascriptInterface
+            fun toast(message: String) {
+                runOnUiThread {
+                    android.widget.Toast.makeText(
+                        this@MainActivity,
+                        message.take(80),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }, "PakrElementBlocker")
+        // 在 UserAgent 中加入 App 标识，目标网页可据此识别 WebView 宿主
         val defaultUA = webView.settings.userAgentString
-        webView.settings.userAgentString = "$defaultUA PakrApp/1.0"
+        webView.settings.userAgentString = "$defaultUA PakrPreApp/1.0"
         webView.loadUrl(APP_URL)
+    }
+
+    private fun normalizeRuleHost(host: String): String {
+        val cleaned = host.lowercase().replace(Regex("[^a-z0-9._-]"), "_").take(255)
+        return cleaned.ifBlank { "local" }
     }
 
     private fun fetchThemeColor(view: WebView) {
@@ -212,6 +247,18 @@ class MainActivity : AppCompatActivity() {
             })();
         """.trimIndent()
         view.evaluateJavascript(js, null)
+    }
+
+    private fun injectElementBlocker(view: WebView) {
+        val script = try {
+            elementBlockerScript ?: assets.open("pakr_element_blocker.js")
+                .bufferedReader()
+                .use { it.readText() }
+                .also { elementBlockerScript = it }
+        } catch (_: Exception) {
+            return
+        }
+        view.evaluateJavascript(script, null)
     }
 
     private fun showOverlay() {
@@ -291,34 +338,9 @@ class MainActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
     }
 
-
-    private fun showDisclaimerIfNeeded() {
-        val prefs = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        if (prefs.getBoolean("disc_agreed", false)) return
-        val dialog = android.app.AlertDialog.Builder(this, android.R.style.Theme_Material_Light_Dialog_Alert)
-            .setTitle("⚠️ 免责声明")
-            .setMessage(
-                "本应用仅供学习、研究和个人合法用途。\n\n" +
-                "禁止用于：\n" +
-                "❌ 制作仿冒、钓鱼或诈骗类应用\n" +
-                "❌ 封装违法、赌博等违规网站\n" +
-                "❌ 侵犯他人知识产权\n" +
-                "❌ 任何违反法律法规的行为\n\n" +
-                "使用本应用产生的一切法律责任由使用者自行承担。"
-            )
-            .setCancelable(false)
-            .setPositiveButton("我已阅读，同意继续") { _, _ ->
-                prefs.edit().putBoolean("disc_agreed", true).apply()
-            }
-            .setNegativeButton("不同意，退出") { _, _ ->
-                finish()
-            }
-            .create()
-        dialog.show()
-    }
-
     companion object {
         const val APP_URL = "{{APP_URL}}"
+        private const val NO_SCREENSHOT = "{{NO_SCREENSHOT}}"
         private const val FILE_CHOOSER_REQUEST = 1001
     }
 }

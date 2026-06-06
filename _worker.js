@@ -19,7 +19,7 @@ export default {
 };
 
 async function handleBuild(request, env) {
-  const { app_url, app_name, package_name, version_name, icon_url, no_screenshot } = await request.json();
+  const { app_url, app_name, package_name, version_name, icon_mode, icon_url, icon_color, no_screenshot, show_disclaimer } = await request.json();
   const buildId = Date.now().toString(36) + Math.random().toString(36).slice(2,6);
   if (!app_url || !app_name || !package_name || !version_name)
     return json({ error: 'Missing required fields' }, 400);
@@ -34,12 +34,27 @@ async function handleBuild(request, env) {
   // version_name 支持任意字符（1.0、2.0-beta、v3.1.0-rc1 等），仅限制长度
   if (!version_name || version_name.length > 32)
     return json({ error: 'version_name must be 1-32 characters' }, 400);
+  const resolvedIconMode = icon_mode === 'url' ? 'url' : 'generated';
+  if (resolvedIconMode === 'url' && !/^https?:\/\//i.test(icon_url || ''))
+    return json({ error: 'Icon URL is required when using online icon mode' }, 400);
+  const resolvedIconColor = /^#?[0-9a-f]{6}$/i.test(icon_color || '') ? icon_color : '#BF3EFF';
 
   const r = await gh(env,
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/build.yml/dispatches`,
     { method: 'POST', body: JSON.stringify({
         ref: 'main',
-        inputs: { app_url, app_name, package_name, version_name, icon_url: icon_url || 'https://apk.091224.xyz/logo.jpg', no_screenshot: no_screenshot||'false', build_id: buildId }
+        inputs: {
+          app_url,
+          app_name,
+          package_name,
+          version_name,
+          icon_mode: resolvedIconMode,
+          icon_url: resolvedIconMode === 'url' ? icon_url : '',
+          icon_color: resolvedIconColor,
+          no_screenshot: no_screenshot||'false',
+          show_disclaimer: show_disclaimer||'false',
+          build_id: buildId
+        }
     })}
   );
   if (r.status !== 204) return json({ error: 'Trigger failed', detail: await r.text() }, 500);
@@ -281,10 +296,12 @@ async function extractApkFromZip(buf) {
 }
 
 function gh(env, path, opts = {}) {
+  const token = env.GITHUB_TOKEN || env.GH_PAT;
+  if (!token) throw new Error('Missing GitHub token: set GITHUB_TOKEN or GH_PAT');
   return fetch(`https://api.github.com${path}`, {
     ...opts,
     headers: {
-      Authorization: `Bearer ${env.GITHUB_TOKEN}`,
+      Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       'User-Agent': 'APK-Builder-CF-Worker/1.0',

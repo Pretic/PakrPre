@@ -23,8 +23,23 @@ class SplashActivity : AppCompatActivity() {
         setContentView(R.layout.activity_splash)
 
         Handler(Looper.getMainLooper()).postDelayed({
-            startActivity(Intent(this, DisclaimerActivity::class.java))
+            val nextActivity = if (shouldShowDisclaimer()) {
+                DisclaimerActivity::class.java
+            } else {
+                MainActivity::class.java
+            }
+            startActivity(Intent(this, nextActivity))
             finish()
         }, 800)
+    }
+
+    private fun shouldShowDisclaimer(): Boolean {
+        if (!SHOW_DISCLAIMER.equals("true", ignoreCase = true)) return false
+        return !getSharedPreferences("app_prefs", MODE_PRIVATE)
+            .getBoolean("disc_agreed", false)
+    }
+
+    companion object {
+        private const val SHOW_DISCLAIMER = "{{SHOW_DISCLAIMER}}"
     }
 }

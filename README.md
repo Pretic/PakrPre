@@ -1,6 +1,6 @@
 <div align="center">
 
-# Pakr — 网页一键打包 APK
+# PakrPre — 网页一键打包 APK
 
 **填写网址和应用信息，3~5 分钟自动生成可安装的 Android APK。**  
 无需本地环境，全程云端完成编译、签名、打包。
@@ -54,7 +54,7 @@ GitHub Actions ── 触发构建 / 查询进度 / 下载 APK
 ## 项目结构
 
 ```
-Pakr/
+PakrPre/
 ├── .github/workflows/
 │   ├── build.yml              # 主构建流程
 │   └── gen-keystore.yml       # 生成签名 Keystore
@@ -121,7 +121,7 @@ Pakr/
    | 变量名 | 值 |
    |--------|----|
    | `GITHUB_OWNER` | 你的 GitHub 用户名 |
-   | `GITHUB_REPO` | `Pakr` |
+| `GITHUB_REPO` | `PakrPre` |
    | `GH_PAT` | 你的 GitHub PAT |
 
 4. **Save and Deploy**，部署完成后即可访问。

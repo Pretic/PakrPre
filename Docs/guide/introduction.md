@@ -1,6 +1,6 @@
 # 介绍
 
-**Pakr** 是一个网页一键打包 APK 的工具。填写目标网址和应用信息后，3~5 分钟自动生成可安装的 Android APK，无需本地安装任何工具，全程云端完成编译、签名、打包。
+**PakrPre** 是一个网页一键打包 APK 的工具。填写目标网址和应用信息后，3~5 分钟自动生成可安装的 Android APK，无需本地安装任何工具，全程云端完成编译、签名、打包。
 
 ## 工作原理
 
@@ -41,4 +41,4 @@ GitHub Actions
 ## 在线体验
 
 - **演示站：** [apk.091224.xyz](https://apk.091224.xyz)
-- **GitHub：** [ZhangShengFan/Pakr](https://github.com/ZhangShengFan/Pakr)
+- **GitHub：** [Pretic/PakrPre](https://github.com/Pretic/PakrPre)

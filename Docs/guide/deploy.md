@@ -17,7 +17,7 @@
 ## 项目结构
 
 ```
-Pakr/
+PakrPre/
 ├── .github/workflows/
 │   ├── build.yml              # 主构建流程
 │   └── gen-keystore.yml       # 生成签名 Keystore

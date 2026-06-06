@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Pakr By ZSFan</title>
+<title>PakrPre</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -258,6 +258,14 @@ footer span{margin:0 8px;opacity:.4}
 /* ── Icon Preview ── */
 .icon-field{display:flex;gap:10px;align-items:flex-end}
 .icon-field .field{flex:1}
+.icon-mode{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.icon-mode label{position:relative;display:flex;align-items:center;justify-content:center;height:38px;border:1px solid #e5e5e5;border-radius:8px;background:#fafafa;color:#555;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.icon-mode input{position:absolute;opacity:0;pointer-events:none}
+.icon-mode label:has(input:checked){background:#111;border-color:#111;color:#fff}
+.icon-generated-row{display:grid;grid-template-columns:1fr 42px;gap:10px;align-items:flex-end}
+.icon-color-wrap{display:flex;gap:8px;align-items:center}
+.icon-color-wrap input[type="color"]{width:42px;height:42px;padding:0;border:1px solid #e5e5e5;border-radius:8px;background:#fff;cursor:pointer}
+.icon-color-wrap input[type="text"]{flex:1}
 .icon-preview{
   width:42px;height:42px;border-radius:10px;flex-shrink:0;margin-top:0;
   background:#f5f5f5;border:1px solid #e8e8e8;
@@ -265,6 +273,7 @@ footer span{margin:0 8px;opacity:.4}
 }
 .icon-preview img{width:100%;height:100%;object-fit:cover;display:none}
 .icon-preview-placeholder{width:20px;height:20px;opacity:.25}
+.icon-letter{display:none;width:100%;height:100%;align-items:center;justify-content:center;color:#fff;font-size:21px;font-weight:800;font-family:Arial,Helvetica,sans-serif}
 
 
 /* ── History 浮动面板 ── */
@@ -418,6 +427,9 @@ footer span{margin:0 8px;opacity:.4}
   .toggle-label{color:#ccc}
   .toggle-track{background:#333}
   .toggle-switch input:checked+.toggle-track{background:#e8e8e8}
+  .icon-mode label{background:#111;border-color:#2a2a2a;color:#aaa}
+  .icon-mode label:has(input:checked){background:#e8e8e8;border-color:#e8e8e8;color:#111}
+  .icon-preview,.icon-color-wrap input[type="color"]{background:#111;border-color:#2a2a2a}
   .toggle-thumb{background:#fff}
   .toggle-switch input:checked~.toggle-thumb{background:#111}
   .perm-item{background:#222;border-color:#2a2a2a;color:#ccc}
@@ -518,91 +530,16 @@ footer{border-top-color:var(--border);color:var(--faint)}
 .cp-btn.copied{background:#ecfdf3!important;color:#15803d!important;border-color:#bbf7d0!important}
 @media (min-width: 520px){.apk-actions{grid-template-columns:repeat(3,1fr)}}
 
-
-/* ── 免责声明弹窗 ── */
-#disclaimerOverlay{display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:16px}
-#disclaimerBox{background:#fff;border-radius:18px;max-width:480px;width:100%;padding:0;box-shadow:0 24px 64px rgba(0,0,0,0.28);display:flex;flex-direction:column;max-height:90vh;overflow:hidden}
-#disclaimerBox .disc-head{padding:24px 24px 0;flex-shrink:0}
-#disclaimerBox h2{font-size:17px;font-weight:700;color:#111;margin:0 0 4px;display:flex;align-items:center;gap:8px}
-/* CSS emoji 替代 ⚠️ */
-#disclaimerBox h2::before{content:'';display:inline-block;width:20px;height:20px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23f59e0b' d='M12 2L1 21h22L12 2zm0 3.5L20.5 19h-17L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z'/%3E%3C/svg%3E") center/contain no-repeat;flex-shrink:0}
-#disclaimerBox .disc-subtitle{font-size:12px;color:#888;margin:4px 0 14px}
-/* 滚动区域 */
-#disclaimerBox .disc-body{font-size:13px;color:#444;line-height:1.8;padding:0 24px;overflow-y:auto;flex:1;min-height:0;max-height:340px;scroll-behavior:smooth}
-#disclaimerBox .disc-body p{margin:0 0 12px}
-#disclaimerBox .disc-body strong{color:#111}
-/* 滚动提示渐变 */
-#disclaimerBox .disc-body-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
-#disclaimerBox .disc-scroll-hint{position:absolute;bottom:0;left:0;right:0;height:48px;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,1));pointer-events:none;transition:opacity .3s;display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px}
-#disclaimerBox .disc-scroll-hint span{font-size:11px;color:#aaa;animation:bounceDown 1.2s ease-in-out infinite}
-@keyframes bounceDown{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
-/* 底部操作区 */
-#disclaimerBox .disc-foot{padding:14px 24px 20px;flex-shrink:0;border-top:1px solid #f0f0f0}
-#disclaimerBox .disc-scroll-tip{font-size:11px;color:#d97706;margin:0 0 12px;display:flex;align-items:center;gap:5px;transition:opacity .3s}
-/* CSS 图标替代 👇 */
-#disclaimerBox .disc-scroll-tip::before{content:'';display:inline-block;width:14px;height:14px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23d97706' d='M12 16l-6-6h12l-6 6z'/%3E%3C/svg%3E") center/contain no-repeat;flex-shrink:0}
-#disclaimerBox .disc-actions{display:flex;gap:10px}
-#disclaimerBox .disc-decline{flex:1;padding:11px;border:1.5px solid #ddd;border-radius:10px;background:#fff;color:#555;font-size:14px;cursor:pointer;font-weight:500;transition:background .15s}
-#disclaimerBox .disc-decline:hover{background:#f5f5f5}
-#disclaimerBox .disc-accept{flex:2;padding:11px;border:none;border-radius:10px;font-size:14px;cursor:pointer;font-weight:600;transition:background .15s,opacity .15s}
-#disclaimerBox .disc-accept:not(.unlocked){background:#ccc;color:#fff;cursor:not-allowed;opacity:.7}
-#disclaimerBox .disc-accept.unlocked{background:#111;color:#fff}
-#disclaimerBox .disc-accept.unlocked:hover{background:#333}
-.disc-ban{display:inline-block;width:13px;height:13px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='%23ef4444'/%3E%3Cpath stroke='%23fff' stroke-width='2.5' stroke-linecap='round' d='M8 8l8 8M16 8l-8 8'/%3E%3C/svg%3E") center/contain no-repeat;vertical-align:middle;margin-right:4px;flex-shrink:0}
-
 </style>
 </head>
 <body>
-
-<!-- 免责声明弹窗（每次访问都显示，需滚动到底部才能同意） -->
-<div id="disclaimerOverlay">
-  <div id="disclaimerBox">
-    <div class="disc-head">
-      <h2>使用须知 &amp; 免责声明</h2>
-      <p class="disc-subtitle">请仔细阅读全部内容，滑动到底部后方可同意</p>
-    </div>
-    <div class="disc-body-wrap">
-      <div class="disc-body" id="discBody">
-        <p>本工具（以下简称"本工具"）由个人开发者提供，仅供<strong>技术学习、研究及个人合法用途</strong>，用于将合法网站快速封装为 Android 应用程序。</p>
-        <p><strong>禁止用途</strong></p>
-        <p>严禁将本工具用于以下任何用途：</p>
-        <p>
-          <!-- CSS ban icon -->
-          <span class="disc-ban"></span> 制作仿冒、钓鱼、诈骗类应用程序<br>
-          <span class="disc-ban"></span> 封装涉及赌博、色情、暴力或其他违法内容的网站<br>
-          <span class="disc-ban"></span> 冒充银行、支付平台、政府机构或其他正规机构<br>
-          <span class="disc-ban"></span> 侵犯他人知识产权、商标权或隐私权<br>
-          <span class="disc-ban"></span> 传播恶意软件、间谍软件或任何有害程序<br>
-          <span class="disc-ban"></span> 任何违反中华人民共和国及使用者所在地法律法规的行为
-        </p>
-        <p><strong>法律责任声明</strong></p>
-        <p>使用本工具打包的应用程序，其内容、用途及由此产生的<strong>一切法律责任均由使用者自行承担</strong>。本工具开发者不对任何滥用行为及其后果承担连带责任。</p>
-        <p><strong>监管与处置</strong></p>
-        <p>开发者保留对滥用行为进行举报的权利，并有权随时终止向违规用户提供服务。若发现使用本工具从事违法犯罪活动，开发者将积极配合相关执法机构的调查。</p>
-        <p style="color:#d97706;background:#fef9ee;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.7"><strong>警示：</strong>网络并非法外之地，利用技术工具实施诈骗属于刑事犯罪，将面临刑事追诉。请勿以身试法。</p>
-        <p style="font-size:11px;color:#bbb;text-align:center;padding-top:4px">— 已阅读至底部 —</p>
-      </div>
-      <div class="disc-scroll-hint" id="discScrollHint">
-        <span>向下滚动阅读全部内容</span>
-      </div>
-    </div>
-    <div class="disc-foot">
-      <p class="disc-scroll-tip" id="discScrollTip">请先滚动阅读全部内容</p>
-      <div class="disc-actions">
-        <button class="disc-decline" onclick="window.location.href='https://www.baidu.com'">不同意，离开</button>
-        <button class="disc-accept" id="discAcceptBtn" onclick="tryAcceptDisclaimer()" disabled>已读完，同意继续</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 
 <nav>
   <a href="javascript:void(0)" class="nav-logo">
     <div class="nav-logo-icon">
       <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
     </div>
-    Pakr
+    PakrPre
   </a>
   <div class="nav-actions">
     <button id="themeBtn" class="nav-tool" title="切换主题" onclick="toggleTheme()" type="button" aria-label="切换主题">
@@ -614,7 +551,7 @@ footer{border-top-color:var(--border);color:var(--faint)}
     <a href="/Docs" target="_blank" class="nav-tool" title="文档" aria-label="文档">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     </a>
-    <a href="https://github.com/ZhangShengFan/Pakr" target="_blank" class="nav-tool github" title="GitHub" aria-label="GitHub">
+    <a href="https://github.com/Pretic/PakrPre" target="_blank" class="nav-tool github" title="GitHub" aria-label="GitHub">
       <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
     </a>
   </div>
@@ -662,10 +599,29 @@ footer{border-top-color:var(--border);color:var(--faint)}
             <label for="f_ver">版本号</label>
             <input type="text" id="f_ver" placeholder="1.0.0" value="1.0.0" required>
           </div>
-          <div class="icon-field">
+          <div class="field">
+            <label>图标来源</label>
+            <div class="icon-mode">
+              <label><input type="radio" name="icon_mode" value="generated" checked><span>默认图标</span></label>
+              <label><input type="radio" name="icon_mode" value="url"><span>在线头像</span></label>
+            </div>
+          </div>
+          <div class="icon-generated-row" id="iconGeneratedRow">
             <div class="field">
-              <label for="f_icon">图标 URL <span style="font-weight:400;color:#ef4444;font-size:11px">（必填）</span></label>
-              <input type="url" id="f_icon" placeholder="必须填写可直接访问的 PNG/JPG 图标地址">
+              <label for="f_icon_color">默认图标颜色</label>
+              <div class="icon-color-wrap">
+                <input type="text" id="f_icon_color" value="#BF3EFF" placeholder="#BF3EFF" maxlength="7">
+                <input type="color" id="f_icon_color_picker" value="#bf3eff" aria-label="选择默认图标颜色">
+              </div>
+            </div>
+            <div class="icon-preview" id="generatedIconPreview">
+              <div class="icon-letter" id="iconLetter">A</div>
+            </div>
+          </div>
+          <div class="icon-field" id="iconUrlRow">
+            <div class="field">
+              <label for="f_icon">图标 URL</label>
+              <input type="url" id="f_icon" placeholder="可直接访问的 PNG/JPG 图标地址">
             </div>
             <div class="icon-preview" id="iconPreview">
               <svg class="icon-preview-placeholder" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -680,6 +636,17 @@ footer{border-top-color:var(--border);color:var(--faint)}
           </div>
           <label class="toggle-switch">
             <input type="checkbox" id="f_no_screenshot">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">添加声明</div>
+            <div class="toggle-desc">开启后首次进入 App 显示免责声明</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="f_show_disclaimer">
             <span class="toggle-track"></span>
             <span class="toggle-thumb"></span>
           </label>
@@ -895,6 +862,21 @@ function validate(){
     document.getElementById('f_pkg').classList.add('err');
     ok = false;
   }
+  const iconUrl = document.getElementById('f_icon');
+  const iconColor = document.getElementById('f_icon_color');
+  if(getIconMode() === 'url'){
+    const value = iconUrl.value.trim();
+    if(!/^https?:\/\//i.test(value)){
+      iconUrl.classList.add('err');
+      ok = false;
+    } else iconUrl.classList.remove('err');
+  } else {
+    iconUrl.classList.remove('err');
+  }
+  if(!/^#?[0-9a-f]{6}$/i.test(iconColor.value.trim())){
+    iconColor.classList.add('err');
+    ok = false;
+  } else iconColor.classList.remove('err');
   return ok;
 }
 
@@ -910,8 +892,11 @@ async function handleBuildClick(){
     app_name:     document.getElementById('f_name').value.trim(),
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
-    icon_url:      document.getElementById('f_icon').value.trim(),
+    icon_mode:     getIconMode(),
+    icon_url:      getIconMode() === 'url' ? document.getElementById('f_icon').value.trim() : '',
+    icon_color:    normalizeHexColor(document.getElementById('f_icon_color').value),
     no_screenshot: document.getElementById('f_no_screenshot').checked ? 'true' : 'false',
+    show_disclaimer: document.getElementById('f_show_disclaimer').checked ? 'true' : 'false',
 
   };
 
@@ -1059,7 +1044,7 @@ async function tryFetchArtifacts(runId, data){
     } else {
       setDot('fail');
       setTitle('超时', '前端轮询超时，但构建可能已经完成');
-      const actionsUrl = runId ? `https://github.com/ZSFan888/APK/actions/runs/${runId}` : 'https://github.com/ZSFan888/APK/actions';
+      const actionsUrl = runId ? `https://github.com/Pretic/PakrPre/actions/runs/${runId}` : 'https://github.com/Pretic/PakrPre/actions';
       showErr(`前端等待超时，但构建可能已成功。请先打开 <a href="${actionsUrl}" target="_blank" style="color:#111">本次 GitHub Actions 运行</a> 下载 Artifact。`);
       setBusy(false);
     }
@@ -1221,10 +1206,13 @@ function renderDownloadButtons(data, runId){
   }
 }
 
-const SAVE_KEYS = ['f_url','f_name','f_pkg','f_ver','f_icon'];
+const SAVE_KEYS = ['f_url','f_name','f_pkg','f_ver','f_icon','f_icon_color'];
+const SAVE_CHECK_KEYS = ['f_no_screenshot','f_show_disclaimer'];
 function saveForm(){
   const saved = {};
   SAVE_KEYS.forEach(id => { saved[id] = document.getElementById(id).value; });
+  SAVE_CHECK_KEYS.forEach(id => { saved[id] = document.getElementById(id).checked; });
+  saved.icon_mode = getIconMode();
   localStorage.setItem('apkbuilder_form', JSON.stringify(saved));
 }
 function loadForm(){
@@ -1233,10 +1221,26 @@ function loadForm(){
     SAVE_KEYS.forEach(id => {
       if(saved[id]) document.getElementById(id).value = saved[id];
     });
+    SAVE_CHECK_KEYS.forEach(id => {
+      if(Object.prototype.hasOwnProperty.call(saved, id)) document.getElementById(id).checked = !!saved[id];
+    });
+    if(saved.icon_mode){
+      const mode = document.querySelector(`input[name="icon_mode"][value="${saved.icon_mode}"]`);
+      if(mode) mode.checked = true;
+    }
   } catch(e){}
 }
 SAVE_KEYS.forEach(id => {
   document.getElementById(id).addEventListener('input', saveForm);
+});
+SAVE_CHECK_KEYS.forEach(id => {
+  document.getElementById(id).addEventListener('change', saveForm);
+});
+document.querySelectorAll('input[name="icon_mode"]').forEach(el => {
+  el.addEventListener('change', () => {
+    syncIconModeUI();
+    saveForm();
+  });
 });
 loadForm();
 setupAutoPackageName();
@@ -1249,6 +1253,50 @@ setupAutoPackageName();
 const iconInput   = document.getElementById('f_icon');
 const iconImg     = document.getElementById('iconImg');
 const iconPreview = document.getElementById('iconPreview');
+const iconUrlRow  = document.getElementById('iconUrlRow');
+const iconGeneratedRow = document.getElementById('iconGeneratedRow');
+const iconColorInput = document.getElementById('f_icon_color');
+const iconColorPicker = document.getElementById('f_icon_color_picker');
+const iconLetter = document.getElementById('iconLetter');
+
+function getIconMode(){
+  const checked = document.querySelector('input[name="icon_mode"]:checked');
+  return checked ? checked.value : 'generated';
+}
+
+function normalizeHexColor(value){
+  const m = String(value || '').trim().match(/^#?([0-9a-f]{6})$/i);
+  return m ? '#' + m[1].toUpperCase() : '#BF3EFF';
+}
+
+function generatedIconLetter(appName, packageName){
+  const appLetter = String(appName || '').match(/[A-Za-z]/);
+  if(appLetter) return appLetter[0].toUpperCase();
+  const pkg = String(packageName || '');
+  const afterCom = pkg.startsWith('com.') ? pkg.slice(4) : pkg;
+  const pkgLetter = afterCom.match(/[A-Za-z]/);
+  return pkgLetter ? pkgLetter[0].toUpperCase() : 'A';
+}
+
+function syncGeneratedIconPreview(){
+  const color = normalizeHexColor(iconColorInput.value);
+  iconLetter.textContent = generatedIconLetter(
+    document.getElementById('f_name').value,
+    document.getElementById('f_pkg').value
+  );
+  iconLetter.style.background = color;
+  iconLetter.style.display = 'flex';
+  iconColorPicker.value = color.toLowerCase();
+}
+
+function syncIconModeUI(){
+  const generated = getIconMode() === 'generated';
+  iconGeneratedRow.style.display = generated ? 'grid' : 'none';
+  iconUrlRow.style.display = generated ? 'none' : 'flex';
+  iconInput.required = !generated;
+  if(generated) syncGeneratedIconPreview();
+  else triggerIconPreview(iconInput.value.trim());
+}
 
 function triggerIconPreview(url){
   iconPreview.className = 'icon-preview';
@@ -1277,10 +1325,26 @@ iconInput.addEventListener('input', () => {
 iconInput.addEventListener('change', () => {
   triggerIconPreview(iconInput.value.trim());
 });
-window.addEventListener('pageshow', () => {
-  triggerIconPreview(iconInput.value.trim());
+iconColorInput.addEventListener('input', () => {
+  syncGeneratedIconPreview();
 });
-triggerIconPreview(iconInput.value.trim());
+iconColorInput.addEventListener('blur', () => {
+  iconColorInput.value = normalizeHexColor(iconColorInput.value);
+  syncGeneratedIconPreview();
+  saveForm();
+});
+iconColorPicker.addEventListener('input', () => {
+  iconColorInput.value = normalizeHexColor(iconColorPicker.value);
+  syncGeneratedIconPreview();
+  saveForm();
+});
+['f_name','f_pkg'].forEach(id => {
+  document.getElementById(id).addEventListener('input', syncGeneratedIconPreview);
+});
+window.addEventListener('pageshow', () => {
+  syncIconModeUI();
+});
+syncIconModeUI();
 
 /* ── 打包历史 ── */
 const HISTORY_KEY = 'apkbuilder_history';
@@ -1299,6 +1363,14 @@ const historyClear = document.getElementById('historyClear');
 
 function getHistory(){ try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); }catch(e){ return []; } }
 function saveHistory(h){ localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0,5))); }
+function historyIconHtml(item){
+  if(item.icon_mode === 'generated'){
+    const color = normalizeHexColor(item.icon_color || '#BF3EFF');
+    const letter = generatedIconLetter(item.app_name, item.package_name);
+    return '<div class="icon-letter" style="display:flex;background:' + color + '">' + letter + '</div>';
+  }
+  return item.icon_url ? '<img src="' + item.icon_url + '" onerror="this.style.display=\'none\'">' : '';
+}
 
 function renderHistory(){
   const h = getHistory();
@@ -1308,7 +1380,7 @@ function renderHistory(){
   historyList.innerHTML = h.map((item,i) => `
     <div class="history-item" data-idx="${i}">
       <div class="history-icon">
-        ${item.icon_url ? '<img src="' + item.icon_url + '" onerror="this.style.display=\'none\'">' : ''}
+        ${historyIconHtml(item)}
       </div>
       <div class="history-info">
         <div class="history-name">${item.app_name}</div>
@@ -1329,8 +1401,12 @@ function renderHistory(){
       _vp[_vp.length-1] = String((parseInt(_vp[_vp.length-1])||0)+1);
       document.getElementById('f_ver').value = _vp.join('.');
       document.getElementById('f_icon').value = item.icon_url;
+      document.getElementById('f_icon_color').value = normalizeHexColor(item.icon_color || '#BF3EFF');
+      const mode = document.querySelector('input[name="icon_mode"][value="' + (item.icon_mode || 'url') + '"]');
+      if(mode) mode.checked = true;
+      document.getElementById('f_show_disclaimer').checked = !!item.show_disclaimer;
       saveForm();
-      triggerIconPreview(item.icon_url);
+      syncIconModeUI();
       toggleHistoryPanel();
       window.scrollTo({top:0, behavior:'smooth'});
     });
@@ -1357,7 +1433,10 @@ function addHistory(data){
     app_name:     document.getElementById('f_name').value.trim(),
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
-    icon_url:     document.getElementById('f_icon').value.trim(),
+    icon_mode:    getIconMode(),
+    icon_url:     getIconMode() === 'url' ? document.getElementById('f_icon').value.trim() : '',
+    icon_color:   normalizeHexColor(document.getElementById('f_icon_color').value),
+    show_disclaimer: document.getElementById('f_show_disclaimer').checked,
     app_url:      document.getElementById('f_url').value.trim(),
     artifacts:    data.artifacts || (data.artifact_id ? [{id:data.artifact_id,name:data.artifact_name||'APK'}] : []),
     ts: Date.now(),
@@ -1419,50 +1498,6 @@ function updateThemeIcon(dark){
     }
   });
 })();
-</script>
-
-<script>
-// 免责声明：浏览器访问显示，App 内（PakrApp UA）跳过
-(function(){
-  var overlay=document.getElementById('disclaimerOverlay');
-  // App 内 WebView UA 含 PakrApp，直接不显示
-  if(navigator.userAgent && navigator.userAgent.indexOf('PakrApp') !== -1){
-    return;
-  }
-  // 浏览器访问：显示弹窗
-  if(overlay) overlay.style.display='flex';
-  var body = document.getElementById('discBody');
-  var hint = document.getElementById('discScrollHint');
-  var tip  = document.getElementById('discScrollTip');
-  var btn  = document.getElementById('discAcceptBtn');
-  if(!body) return;
-
-  function checkScrolled(){
-    var atBottom = body.scrollTop + body.clientHeight >= body.scrollHeight - 8;
-    if(atBottom){
-      if(hint) hint.style.opacity = '0';
-      if(tip)  tip.style.opacity  = '0';
-      if(btn){ btn.disabled = false; btn.classList.add('unlocked'); }
-    }
-  }
-
-  body.addEventListener('scroll', checkScrolled);
-  // 内容很短时直接解锁
-  setTimeout(function(){
-    if(body.scrollHeight <= body.clientHeight + 8) checkScrolled();
-  }, 200);
-})();
-
-function tryAcceptDisclaimer(){
-  var btn = document.getElementById('discAcceptBtn');
-  if(!btn || btn.disabled) return;
-  acceptDisclaimer();
-}
-
-function acceptDisclaimer(){
-  var el=document.getElementById('disclaimerOverlay');
-  if(el){ el.style.opacity='0'; el.style.transition='opacity 0.3s'; setTimeout(function(){ el.style.display='none'; },300); }
-}
 </script>
 
 </body>

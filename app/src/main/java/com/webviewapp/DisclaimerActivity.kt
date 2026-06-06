@@ -12,35 +12,28 @@ class DisclaimerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_disclaimer)
 
-        val tvBody = findViewById<TextView>(R.id.tvDisclaimerBody)
-        tvBody.text = buildString {
-            appendLine("本应用仅供技术学习、研究及个人合法用途使用。")
+        findViewById<TextView>(R.id.tvDisclaimerBody).text = buildString {
+            appendLine("本应用仅供学习、研究和个人合法用途。")
             appendLine()
-            appendLine("【严禁用途】")
+            appendLine("禁止用于：")
             appendLine()
-            appendLine("× 实施网络诈骗、钓鱼攻击")
-            appendLine("× 冒充银行、支付平台或政府机构")
-            appendLine("× 传播违法、赌博、色情或有害内容")
-            appendLine("× 侵犯他人知识产权、商标权或隐私权")
-            appendLine("× 任何违反中华人民共和国及所在地法律法规的行为")
+            appendLine("× 制作仿冒、钓鱼或诈骗类应用")
+            appendLine("× 封装违法、赌博等违规网站")
+            appendLine("× 侵犯他人知识产权")
+            appendLine("× 任何违反法律法规的行为")
             appendLine()
-            appendLine("【法律责任声明】")
-            appendLine()
-            appendLine("本应用的内容及用途由使用者自行决定，由此产生的一切法律责任均由使用者自行承担，开发者不承担连带责任。")
-            appendLine()
-            appendLine("【警示】")
-            appendLine()
-            append("网络并非法外之地，利用技术工具实施诈骗属于刑事犯罪，将面临刑事追诉。请勿以身试法。")
+            append("使用本应用产生的一切法律责任由使用者自行承担。")
         }
 
-        val btnDecline = findViewById<Button>(R.id.btnDecline)
-        val btnAccept  = findViewById<Button>(R.id.btnAccept)
-
-        btnDecline.setOnClickListener { finishAffinity() }
-        btnAccept.setOnClickListener { proceed() }
+        findViewById<Button>(R.id.btnDecline).setOnClickListener { finishAffinity() }
+        findViewById<Button>(R.id.btnAccept).setOnClickListener { proceed() }
     }
 
     private fun proceed() {
+        getSharedPreferences("app_prefs", MODE_PRIVATE)
+            .edit()
+            .putBoolean("disc_agreed", true)
+            .apply()
         startActivity(Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         })

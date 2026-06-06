@@ -23,8 +23,20 @@ on:
         description: Icon Image URL
         required: false
         default: ""
+      icon_mode:
+        description: Icon mode (url/generated)
+        required: false
+        default: "generated"
+      icon_color:
+        description: Generated icon color
+        required: false
+        default: "#BF3EFF"
       no_screenshot:
         description: Disable screenshot (true/false)
+        required: false
+        default: "false"
+      show_disclaimer:
+        description: Show app disclaimer on first launch (true/false)
         required: false
         default: "false"
 jobs:
@@ -88,9 +100,16 @@ jobs:
           NO_SS="${{ github.event.inputs.no_screenshot }}"
           sed -i "s|{{NO_SCREENSHOT}}|${NO_SS:-false}|g" app/src/main/java/$PKG_PATH/MainActivity.kt
 
+          SHOW_DISC="${{ github.event.inputs.show_disclaimer }}"
+          sed -i "s|{{SHOW_DISCLAIMER}}|${SHOW_DISC:-false}|g" app/src/main/java/$PKG_PATH/SplashActivity.kt
+
       - name: Process icon
         env:
           ICON_URL: ${{ github.event.inputs.icon_url }}
+          ICON_MODE: ${{ github.event.inputs.icon_mode }}
+          ICON_COLOR: ${{ github.event.inputs.icon_color }}
+          APP_NAME: ${{ github.event.inputs.app_name }}
+          PACKAGE_NAME: ${{ github.event.inputs.package_name }}
         run: |
           pip install Pillow -q
           python3 Scripts/process_icon.py

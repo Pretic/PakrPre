@@ -2,12 +2,12 @@
 layout: home
 
 hero:
-  name: "Pakr"
+  name: "PakrPre"
   text: "网页一键打包 APK"
   tagline: 填写网址和应用信息，3~5 分钟自动生成可安装的 Android APK，无需本地环境，全程云端构建。
   image:
     src: /logo.jpg
-    alt: Pakr
+    alt: PakrPre
   actions:
     - theme: brand
       text: 快速开始

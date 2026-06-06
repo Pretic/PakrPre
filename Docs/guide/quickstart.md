@@ -1,6 +1,6 @@
 # 快速开始
 
-本页面介绍如何在 3 分钟内完成部署，开始使用 Pakr。
+本页面介绍如何在 3 分钟内完成部署，开始使用 PakrPre。
 
 ## 前置要求
 
@@ -9,7 +9,7 @@
 
 ## 第一步：Fork 仓库
 
-点击右上角 **Fork**，将 [ZhangShengFan/Pakr](https://github.com/ZhangShengFan/Pakr) Fork 到你自己的账号下。
+点击右上角 **Fork**，将 [Pretic/PakrPre](https://github.com/Pretic/PakrPre) Fork 到你自己的账号下。
 
 ## 第二步：生成签名 Keystore
 
@@ -45,7 +45,7 @@
    | 变量名 | 值 |
    |--------|----|
    | `GITHUB_OWNER` | 你的 GitHub 用户名 |
-   | `GITHUB_REPO` | `Pakr` |
+   | `GITHUB_REPO` | `PakrPre` |
    | `GH_PAT` | 你的 GitHub PAT |
 
 4. 点击 **Save and Deploy**，等待部署完成。
