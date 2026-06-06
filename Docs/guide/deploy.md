@@ -10,6 +10,18 @@
 
 在 Cloudflare Pages 项目设置中 → **Custom domains** → 添加你的域名即可，SSL 自动配置。
 
+如果希望访问 `pages.dev` 时自动跳转到自定义域名，并让下载链接、二维码稳定使用该域名，可在 Pages 环境变量中添加：
+
+| 变量名 | 示例 |
+|--------|------|
+| `PUBLIC_BASE_URL` | `https://pakrpre.precc.eu.cc` |
+
+未配置该变量时，页面会按当前访问域名生成下载链接和二维码。
+
+## 访问保护
+
+Pages 环境变量中添加 `ADMIN_PASSWORD` 后，打包页、状态接口、日志接口和下载链接都会要求先登录。不添加该变量时保持公开访问。
+
 ## 更新部署
 
 主仓库有新提交时，只需在 Cloudflare Pages 控制台手动触发重新部署，或开启 **Auto Deployment** 让每次 push 自动更新。

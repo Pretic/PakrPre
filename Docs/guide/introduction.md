@@ -26,13 +26,13 @@ _worker.js ──→ 触发 GitHub Actions (workflow_dispatch)
    │
    ▼
 GitHub Actions
-   ├── 1. Inject parameters   注入 URL / 包名 / 版本号等参数
-   ├── 2. Process icon        下载图标，生成多尺寸 mipmap
+   ├── 1. Inject parameters   注入 URL / 包名 / 版本号 / UA / 开关参数
+   ├── 2. Process icon        处理在线图标或生成默认图标
    ├── 3. Build APK           Gradle 编译（arm64 + armeabi-v7a）
    └── 4. Sign & Upload       zipalign + apksigner 签名，上传 Artifact
    │
    ▼
-前端每 5 秒轮询 /status，实时更新进度百分比和步骤状态
+前端轮询 /status 和 /logs，更新进度、步骤状态和详细日志
    │
    ▼
 构建完成 → 显示多架构下载按钮，记录到历史面板
@@ -40,5 +40,5 @@ GitHub Actions
 
 ## 在线体验
 
-- **演示站：** [apk.091224.xyz](https://apk.091224.xyz)
+- **当前演示站：** [pakrpre.precc.eu.cc](https://pakrpre.precc.eu.cc)
 - **GitHub：** [Pretic/PakrPre](https://github.com/Pretic/PakrPre)

@@ -208,6 +208,24 @@ class MainActivity : AppCompatActivity() {
             }
 
             @JavascriptInterface
+            fun getFontScale(host: String): String {
+                return getSharedPreferences("reader_settings", Context.MODE_PRIVATE)
+                    .getString("${normalizeRuleHost(host)}:font_scale", "normal") ?: "normal"
+            }
+
+            @JavascriptInterface
+            fun saveFontScale(host: String, scale: String) {
+                val safeScale = when (scale) {
+                    "small", "normal", "large" -> scale
+                    else -> "normal"
+                }
+                getSharedPreferences("reader_settings", Context.MODE_PRIVATE)
+                    .edit()
+                    .putString("${normalizeRuleHost(host)}:font_scale", safeScale)
+                    .apply()
+            }
+
+            @JavascriptInterface
             fun toast(message: String) {
                 runOnUiThread {
                     android.widget.Toast.makeText(
@@ -218,10 +236,19 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, "PakrElementBlocker")
-        // 在 UserAgent 中加入 App 标识，目标网页可据此识别 WebView 宿主
-        val defaultUA = webView.settings.userAgentString
-        webView.settings.userAgentString = "$defaultUA PakrPreApp/1.0"
+        webView.settings.userAgentString = configuredUserAgent()
         webView.loadUrl(APP_URL)
+    }
+
+    private fun configuredUserAgent(): String {
+        return when (UA_MODE.lowercase()) {
+            "android", "auto" -> ANDROID_MOBILE_UA
+            "iphone" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            "harmonyos" -> "Mozilla/5.0 (Linux; Android 12; HarmonyOS; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            "android_pad" -> "Mozilla/5.0 (Linux; Android 14; Pixel Tablet) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "ipad" -> "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+            else -> ANDROID_MOBILE_UA
+        }
     }
 
     private fun normalizeRuleHost(host: String): String {
@@ -341,6 +368,8 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val APP_URL = "{{APP_URL}}"
         private const val NO_SCREENSHOT = "{{NO_SCREENSHOT}}"
+        private const val UA_MODE = "{{UA_MODE}}"
+        private const val ANDROID_MOBILE_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
         private const val FILE_CHOOSER_REQUEST = 1001
     }
 }

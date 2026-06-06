@@ -12,8 +12,10 @@
   var highlightTimer = null;
   var picker = null;
   var styleId = "pakr-hide-style";
+  var fontStyleId = "pakr-font-style";
   var uiStyleId = "pakr-blocker-ui-style";
   var uiPrefix = "pakr-blocker-";
+  var fontScale = "normal";
   var blockedRootIds = {
     app: true,
     root: true,
@@ -47,6 +49,56 @@
 
   function saveRules() {
     bridge.saveRules(host, JSON.stringify(rules.slice(0, 200)));
+  }
+
+  function normalizeFontScale(value) {
+    return value === "small" || value === "large" ? value : "normal";
+  }
+
+  function loadFontScale() {
+    try {
+      fontScale = normalizeFontScale(bridge.getFontScale(host) || "normal");
+    } catch (_) {
+      try {
+        fontScale = normalizeFontScale(localStorage.getItem("pakr_font_scale_" + host) || "normal");
+      } catch (_) {
+        fontScale = "normal";
+      }
+    }
+  }
+
+  function saveFontScale() {
+    try {
+      bridge.saveFontScale(host, fontScale);
+    } catch (_) {
+      try { localStorage.setItem("pakr_font_scale_" + host, fontScale); } catch (_) {}
+    }
+  }
+
+  function applyFontScale() {
+    var style = document.getElementById(fontStyleId);
+    if (fontScale === "normal") {
+      if (style) style.remove();
+      return;
+    }
+    if (!style) {
+      style = document.createElement("style");
+      style.id = fontStyleId;
+      document.documentElement.appendChild(style);
+    }
+    var ratio = fontScale === "large" ? "112%" : "94%";
+    style.textContent =
+      "body{font-size:" + ratio + "!important;line-height:1.68!important;}" +
+      "p,article,main,section,li,blockquote{line-height:1.68!important;}" +
+      "img,video{max-width:100%!important;height:auto!important;}";
+  }
+
+  function setFontScale(scale) {
+    fontScale = normalizeFontScale(scale);
+    saveFontScale();
+    applyFontScale();
+    removeUi();
+    showToast(fontScale === "large" ? "字号已放大" : fontScale === "small" ? "字号已缩小" : "字号已恢复默认");
   }
 
   function safeSelector(selector) {
@@ -165,6 +217,41 @@
     return el.tagName.toLowerCase() + (text ? " · " + text : "");
   }
 
+  function cleanCopyText(value) {
+    var text = String(value || "").replace(/\s+/g, " ").trim();
+    return text.length > 1000 ? text.slice(0, 1000) : text;
+  }
+
+  function selectedCopyText() {
+    try {
+      return cleanCopyText(window.getSelection && window.getSelection().toString());
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function copyableTextFor(el) {
+    var selected = selectedCopyText();
+    if (selected) return selected;
+    el = normalizeElement(el);
+    if (!el) return "";
+    var tag = el.tagName.toLowerCase();
+    if (tag === "input" || tag === "textarea") {
+      return cleanCopyText(el.value || el.getAttribute("value") || "");
+    }
+    return cleanCopyText(el.innerText || el.textContent || el.alt || el.title || "");
+  }
+
+  function copyableLinkFor(el) {
+    el = normalizeElement(el);
+    while (el && el.nodeType === 1 && el !== document.documentElement) {
+      var tag = el.tagName ? el.tagName.toLowerCase() : "";
+      if ((tag === "a" || tag === "area") && el.href) return el.href;
+      el = el.parentElement;
+    }
+    return "";
+  }
+
   function elementAreaRatio(el) {
     var rect = el.getBoundingClientRect();
     var width = Math.max(0, Math.min(rect.right, innerWidth) - Math.max(rect.left, 0));
@@ -263,7 +350,8 @@
     }, null, 2);
   }
 
-  function copyText(text) {
+  function copyText(text, successMessage) {
+    successMessage = successMessage || "已复制";
     var copyWithTextarea = function () {
       var textarea = document.createElement("textarea");
       textarea.dataset.pakrUi = "1";
@@ -280,13 +368,13 @@
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text)
-        .then(function () { showToast("已复制规则"); })
+        .then(function () { showToast(successMessage); })
         .catch(function () {
-          showToast(copyWithTextarea() ? "已复制规则" : "请手动复制规则");
+          showToast(copyWithTextarea() ? successMessage : "请手动复制");
         });
       return;
     }
-    showToast(copyWithTextarea() ? "已复制规则" : "请手动复制规则");
+    showToast(copyWithTextarea() ? successMessage : "请手动复制");
   }
 
   function normalizeImportedRules(raw) {
@@ -320,7 +408,7 @@
     copy.addEventListener("click", function () {
       textarea.focus();
       textarea.select();
-      copyText(textarea.value);
+      copyText(textarea.value, "已复制规则");
     });
 
     var actions = [textarea, copy];
@@ -610,27 +698,64 @@
     updatePickerHighlight();
   }
 
+  function showFontPanel() {
+    var actions = [];
+    var row = document.createElement("div");
+    row.className = uiPrefix + "font-row";
+    [
+      ["A-", "small"],
+      ["A", "normal"],
+      ["A+", "large"]
+    ].forEach(function (item) {
+      var button = document.createElement("button");
+      button.textContent = item[0];
+      if (fontScale === item[1]) button.className = uiPrefix + "primary";
+      button.addEventListener("click", function () {
+        setFontScale(item[1]);
+      });
+      row.appendChild(button);
+    });
+    actions.push(row);
+    showPanel("字号", "当前域名：" + host + "\nA- 缩小 · A 恢复默认 · A+ 放大", actions);
+  }
+
   function showMenu(x, y, target) {
     removeUi();
     lastTarget = target && isUiElement(target) ? null : normalizeElement(target);
+    var textToCopy = copyableTextFor(lastTarget);
+    var linkToCopy = copyableLinkFor(lastTarget);
 
     var menu = document.createElement("div");
     menu.dataset.pakrUi = "1";
     menu.className = uiPrefix + "menu";
 
-    var items = [
-      ["屏蔽元素", function () { if (lastTarget) startPicker(lastTarget); }],
-      ["查看元素", function () { if (lastTarget) inspectElement(lastTarget); }],
-      ["已屏蔽列表", function () { showRulesPanel(); }]
-    ];
+    var items = [];
+    if (textToCopy) {
+      items.push({
+        label: "复制文本",
+        action: function () { copyText(textToCopy, "已复制文本"); removeUi(); }
+      });
+    }
+    if (linkToCopy) {
+      items.push({
+        label: "复制链接",
+        action: function () { copyText(linkToCopy, "已复制链接"); removeUi(); }
+      });
+    }
+    items = items.concat([
+      { label: "屏蔽元素", requiresTarget: true, action: function () { if (lastTarget) startPicker(lastTarget); } },
+      { label: "查看元素", requiresTarget: true, action: function () { if (lastTarget) inspectElement(lastTarget); } },
+      { label: "字号", action: function () { showFontPanel(); } },
+      { label: "已屏蔽列表", action: function () { showRulesPanel(); } }
+    ]);
 
-    items.forEach(function (item, index) {
+    items.forEach(function (item) {
       var button = document.createElement("button");
-      button.textContent = item[0];
-      button.disabled = index < 2 && !lastTarget;
+      button.textContent = item.label;
+      button.disabled = item.requiresTarget && !lastTarget;
       button.addEventListener("click", function (event) {
         event.stopPropagation();
-        item[1]();
+        item.action();
       });
       menu.appendChild(button);
     });
@@ -661,6 +786,8 @@
       "." + uiPrefix + "textarea{box-sizing:border-box;width:100%;min-height:180px;border:1px solid #e5e5e5;border-radius:10px;background:#fafafa;color:#111;padding:10px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;margin:0 0 10px}" +
       "." + uiPrefix + "action-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:0 0 10px}" +
       "." + uiPrefix + "action-row button{height:38px;border:0;border-radius:9px;font-size:13px;font-weight:600}" +
+      "." + uiPrefix + "font-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}" +
+      "." + uiPrefix + "font-row button{height:44px;border:0;border-radius:10px;background:#f2f2f2;color:#111;font-size:18px;font-weight:800}" +
       "." + uiPrefix + "primary{background:#111!important;color:#fff!important}" +
       "." + uiPrefix + "primary:disabled{background:#d1d1d1!important;color:#fff!important}" +
       "." + uiPrefix + "rule-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}" +
@@ -704,4 +831,6 @@
   installUiCss();
   loadRules();
   applyRules();
+  loadFontScale();
+  applyFontScale();
 })();

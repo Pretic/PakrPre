@@ -29,6 +29,7 @@ nav{
 .nav-logo-icon svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
 .nav-actions{display:flex;align-items:center;gap:8px}
 .nav-tool{
+  position:relative;
   display:flex;align-items:center;justify-content:center;
   width:38px;height:38px;padding:0;
   color:#555;background:#f9f9f9;border:1px solid #efefef;
@@ -40,6 +41,10 @@ nav{
 .nav-tool:active{transform:scale(0.97)}
 .nav-tool svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .nav-tool.github svg{fill:currentColor;stroke:none}
+.nav-tool.has-log-error::after{
+  content:'';position:absolute;right:7px;top:7px;width:7px;height:7px;border-radius:50%;
+  background:#ef4444;box-shadow:0 0 0 2px var(--surface,#fff);
+}
 
 /* ── Hero ── */
 .hero{
@@ -91,16 +96,32 @@ nav{
 @media(max-width:400px){.row{grid-template-columns:1fr}}
 
 label{font-size:12px;font-weight:500;color:#444}
+.form > .field > label,
+.icon-generated-row .field > label,
+.icon-field .field > label,
+.toggle-label{
+  font-weight:700;
+  color:var(--label-strong,#333);
+}
 .hint{font-size:11px;color:#999;margin-top:2px}
-input{
+input,select{
   height:42px;
   border:1px solid #e0e0e0;border-radius:8px;
   padding:0 12px;font-size:14px;font-family:inherit;
   color:#111;background:#fafafa;outline:none;
   transition:border-color .15s,box-shadow .15s,background .15s;
 }
+select{
+  cursor:pointer;
+  padding-right:34px;
+  appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,#777 50%),linear-gradient(135deg,#777 50%,transparent 50%);
+  background-position:calc(100% - 18px) 18px,calc(100% - 12px) 18px;
+  background-size:6px 6px,6px 6px;
+  background-repeat:no-repeat;
+}
 input::placeholder{color:#bbb}
-input:focus{border-color:#111;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.06)}
+input:focus,select:focus{border-color:#111;background-color:#fff;box-shadow:0 0 0 3px rgba(0,0,0,0.06)}
 input:not(:placeholder-shown){background:#fafafa}
 input:-webkit-autofill,input:-webkit-autofill:focus{
   -webkit-box-shadow:0 0 0 100px #fafafa inset!important;
@@ -159,7 +180,6 @@ input.err{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,0.08)}
 .status-dot.success{background:#22c55e}
 .status-dot.fail{background:#ef4444}
 @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.18);opacity:.55}}
-50%{opacity:.7;transform:scale(1.3)}}
 .status-title{font-size:14px;font-weight:600;color:#111}
 .status-sub{font-size:12px;color:#888;margin-top:1px}
 
@@ -371,7 +391,7 @@ footer span{margin:0 8px;opacity:.4}
 /* ── Toggle Switch ── */
 .toggle-row{display:flex;align-items:center;justify-content:space-between;
   padding:12px 0;border-top:1px solid #f0f0f0;margin-top:4px}
-.toggle-label{font-size:13px;font-weight:500;color:#333}
+.toggle-label{font-size:13px;font-weight:700;color:var(--label-strong,#333)}
 .toggle-desc{font-size:11px;color:#aaa;margin-top:1px}
 .toggle-switch{position:relative;width:40px;height:22px;flex-shrink:0}
 .toggle-switch input{opacity:0;width:0;height:0;position:absolute}
@@ -437,11 +457,46 @@ footer span{margin:0 8px;opacity:.4}
 
 }
 
+/* ── Log Panel ── */
+#logOverlay{display:none;position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,0.15);backdrop-filter:blur(2px)}
+#logPanel{
+  position:fixed;top:0;right:0;bottom:0;width:560px;max-width:96vw;
+  background:var(--bg,#fff);z-index:1002;box-shadow:-4px 0 32px rgba(0,0,0,0.14);
+  display:flex;flex-direction:column;border-radius:20px 0 0 20px;
+  transform:translateX(100%);transition:transform .28s cubic-bezier(0.32,0,0.15,1);
+  overflow:hidden;border-left:1px solid var(--border,#e8e8e8);
+}
+#logPanel.open{transform:translateX(0)}
+#logOverlay.open{display:block}
+.log-panel-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid var(--border,#f0f0f0);font-size:13px;font-weight:700;color:var(--text,#111);flex-shrink:0}
+.log-panel-tools{display:flex;align-items:center;gap:10px}
+.log-panel-btn{background:none;border:none;cursor:pointer;color:var(--faint,#999);padding:0;display:flex;align-items:center;justify-content:center}
+.log-panel-btn:hover{color:var(--text,#111)}
+.log-panel-meta{padding:10px 18px;border-bottom:1px solid var(--border2,#efefef);font-size:12px;color:var(--muted,#666);line-height:1.5}
+.log-stream{flex:1;overflow:auto;padding:12px 14px;background:var(--surface,#f9f9f9);border:0;color:var(--muted,#666);font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;font-size:11px;line-height:1.55}
+.log-empty{padding:38px 18px;text-align:center;color:var(--faint,#aaa);font-size:13px}
+.log-line{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start;padding:4px 6px;border-radius:7px;white-space:pre-wrap;word-break:break-word}
+.log-line+.log-line{margin-top:2px}
+.log-line-badge{min-width:42px;text-align:center;border-radius:999px;padding:1px 6px;font-size:10px;font-weight:700;background:rgba(0,0,0,.06);color:var(--muted,#666)}
+.log-line.error{background:#fff1f2;color:#9f1239}
+.log-line.error .log-line-badge{background:#fecdd3;color:#9f1239}
+.log-line.warn{background:#fffbeb;color:#92400e}
+.log-line.warn .log-line-badge{background:#fde68a;color:#92400e}
+.log-line.step{background:#eff6ff;color:#1d4ed8}
+.log-line.step .log-line-badge{background:#bfdbfe;color:#1d4ed8}
+[data-theme="dark"] .log-line.error{background:rgba(244,63,94,.14);color:#fda4af}
+[data-theme="dark"] .log-line.error .log-line-badge{background:rgba(244,63,94,.28);color:#fecdd3}
+[data-theme="dark"] .log-line.warn{background:rgba(245,158,11,.14);color:#fcd34d}
+[data-theme="dark"] .log-line.warn .log-line-badge{background:rgba(245,158,11,.28);color:#fde68a}
+[data-theme="dark"] .log-line.step{background:rgba(59,130,246,.14);color:#93c5fd}
+[data-theme="dark"] .log-line.step .log-line-badge{background:rgba(59,130,246,.28);color:#bfdbfe}
+
 /* ── Dark Mode ── */
 :root{
   --bg:#fff;--surface:#f9f9f9;--surface2:#f5f5f5;
   --border:#e8e8e8;--border2:#efefef;
   --text:#111;--muted:#666;--faint:#aaa;
+  --label-strong:#333;
   --input-bg:#fafafa;--input-border:#e0e0e0;
   --card-shadow:0 4px 24px rgba(0,0,0,0.06);
   --nav-bg:rgba(255,255,255,0.85);
@@ -451,13 +506,14 @@ footer span{margin:0 8px;opacity:.4}
   --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;
   --border:#30363d;--border2:#21262d;
   --text:#e6edf3;--muted:#8b949e;--faint:#484f58;
+  --label-strong:#c9d1d9;
   --input-bg:#1c2128;--input-border:#30363d;
   --card-shadow:0 4px 24px rgba(0,0,0,0.35);
   --nav-bg:rgba(13,17,23,0.85);
   --history-bg:#161b22;--history-border:#21262d;
 }
 html{ color-scheme: light dark; }
-body,nav,.card,input,#historyPanel,.history-item,
+body,nav,.card,input,select,#historyPanel,.history-item,
 .steps-card,.status-box,.dl-card,.perm-item{
   transition:background-color .2s,border-color .2s,color .2s;
 }
@@ -470,8 +526,12 @@ nav{background:var(--nav-bg);border-bottom-color:var(--border)}
 .nav-tool:hover{background:var(--surface2);color:var(--text);border-color:var(--border)}
 .card{background:var(--bg);border-color:var(--border);box-shadow:var(--card-shadow)}
 label{color:var(--muted)}
-input{background:var(--input-bg);border-color:var(--input-border);color:var(--text)}
-input:focus{border-color:var(--text);background:var(--bg)}
+.form > .field > label,
+.icon-generated-row .field > label,
+.icon-field .field > label,
+.toggle-label{color:var(--label-strong)}
+input,select{background-color:var(--input-bg);border-color:var(--input-border);color:var(--text)}
+input:focus,select:focus{border-color:var(--text);background-color:var(--bg)}
 input::placeholder{color:var(--faint)}
 .steps-card{background:var(--surface);border-color:var(--border2)}
 .steps-title{color:var(--muted)}
@@ -548,7 +608,10 @@ footer{border-top-color:var(--border);color:var(--faint)}
     <button id="historyBtn" class="nav-tool" title="打包历史" onclick="toggleHistoryPanel()" type="button" aria-label="打包历史">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
     </button>
-    <a href="/Docs" target="_blank" class="nav-tool" title="文档" aria-label="文档">
+    <button id="logBtn" class="nav-tool" title="详细日志" onclick="toggleLogPanel()" type="button" aria-label="详细日志">
+      <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+    </button>
+    <a href="Docs/index.html" target="_blank" class="nav-tool" title="文档" aria-label="文档">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     </a>
     <a href="https://github.com/Pretic/PakrPre" target="_blank" class="nav-tool github" title="GitHub" aria-label="GitHub">
@@ -571,6 +634,26 @@ footer{border-top-color:var(--border);color:var(--faint)}
   </div>
   <div class="history-list" id="historyList"></div>
   <div id="historyEmpty" style="display:none;text-align:center;padding:32px 0;color:#bbb;font-size:13px">暂无打包记录</div>
+</div>
+
+<!-- 详细日志浮动面板 -->
+<div id="logOverlay" onclick="toggleLogPanel(false)"></div>
+<div id="logPanel">
+  <div class="log-panel-head">
+    <span>详细日志</span>
+    <div class="log-panel-tools">
+      <button class="log-panel-btn" type="button" title="刷新日志" aria-label="刷新日志" onclick="refreshLogsNow()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+      <button class="log-panel-btn" type="button" title="关闭" aria-label="关闭" onclick="toggleLogPanel(false)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="log-panel-meta" id="logMeta">开始打包后会显示 GitHub Actions 详细日志。</div>
+  <div class="log-stream" id="logStream">
+    <div class="log-empty">暂无日志</div>
+  </div>
 </div>
 
 
@@ -603,7 +686,7 @@ footer{border-top-color:var(--border);color:var(--faint)}
             <label>图标来源</label>
             <div class="icon-mode">
               <label><input type="radio" name="icon_mode" value="generated" checked><span>默认图标</span></label>
-              <label><input type="radio" name="icon_mode" value="url"><span>在线头像</span></label>
+              <label><input type="radio" name="icon_mode" value="url"><span>在线图标</span></label>
             </div>
           </div>
           <div class="icon-generated-row" id="iconGeneratedRow">
@@ -617,6 +700,17 @@ footer{border-top-color:var(--border);color:var(--faint)}
             <div class="icon-preview" id="generatedIconPreview">
               <div class="icon-letter" id="iconLetter">A</div>
             </div>
+          </div>
+          <div class="field">
+            <label for="f_ua_mode">访问身份</label>
+            <select id="f_ua_mode">
+              <option value="auto" selected>Auto</option>
+              <option value="android">Android</option>
+              <option value="iphone">iPhone</option>
+              <option value="harmonyos">HarmonyOS</option>
+              <option value="android_pad">Android Pad</option>
+              <option value="ipad">iPad</option>
+            </select>
           </div>
           <div class="icon-field" id="iconUrlRow">
             <div class="field">
@@ -707,7 +801,15 @@ footer{border-top-color:var(--border);color:var(--faint)}
 </footer>
 
 <script>
+window.PAKR_PUBLIC_BASE_URL = window.PAKR_PUBLIC_BASE_URL || '__PAKR_PUBLIC_BASE_URL__';
+if (window.PAKR_PUBLIC_BASE_URL === '__PAKR_PUBLIC_BASE_URL__') window.PAKR_PUBLIC_BASE_URL = '';
 const WORKER = '';
+const PUBLIC_BASE_URL = String(window.PAKR_PUBLIC_BASE_URL || '').replace(/\/+$/, '');
+
+function absoluteAppUrl(path){
+  const base = PUBLIC_BASE_URL || window.location.origin;
+  return new URL(path, base + '/').href;
+}
 
 const JAVA_RESERVED_WORDS = new Set([
   'abstract','assert','boolean','break','byte','case','catch','char','class','const','continue','default','do','double','else','enum','extends','final','finally','float','for','goto','if','implements','import','instanceof','int','interface','long','native','new','package','private','protected','public','return','short','static','strictfp','super','switch','synchronized','this','throw','throws','transient','try','void','volatile','while','true','false','null'
@@ -808,9 +910,146 @@ const sTitle    = document.getElementById('sTitle');
 const sSub      = document.getElementById('sSub');
 const progFill  = document.getElementById('progFill');
 const errBox    = document.getElementById('errBox');
+const logBtn    = document.getElementById('logBtn');
+const logPanel  = document.getElementById('logPanel');
+const logOverlay = document.getElementById('logOverlay');
+const logStream = document.getElementById('logStream');
+const logMeta   = document.getElementById('logMeta');
 
 function clearErrDetails(){
   document.querySelectorAll('#statusBox .err-detail').forEach(el => el.remove());
+}
+
+let logLinesCache = [];
+let logHasError = false;
+
+function toggleLogPanel(open){
+  const willOpen = typeof open === 'boolean' ? open : !logPanel.classList.contains('open');
+  logPanel.classList.toggle('open', willOpen);
+  logOverlay.classList.toggle('open', willOpen);
+  if(willOpen) renderLogStream();
+}
+
+function resetLogPanel(){
+  logLinesCache = [];
+  logHasError = false;
+  logBtn.classList.remove('has-log-error');
+  logMeta.textContent = '正在提交构建任务，拿到运行编号后会显示详细日志。';
+  renderLogStream();
+}
+
+function setManualLog(lines, hasError=false){
+  logLinesCache = Array.isArray(lines) ? lines.filter(Boolean) : String(lines || '').split('\n').filter(Boolean);
+  logHasError = !!hasError || logLinesCache.some(line => classifyLogLine(line).kind === 'error');
+  logBtn.classList.toggle('has-log-error', logHasError);
+  renderLogStream();
+}
+
+function mergeFailureLog(text){
+  if(!text) return;
+  const lines = String(text).split('\n').map(l => l.trim()).filter(Boolean);
+  if(!lines.length) return;
+  const merged = [...logLinesCache, ...lines];
+  logLinesCache = Array.from(new Set(merged)).slice(-400);
+  logHasError = true;
+  logBtn.classList.add('has-log-error');
+  renderLogStream();
+}
+
+function refreshLogsNow(){
+  if(!currentRunId){
+    logMeta.textContent = '还没有 GitHub Actions 运行编号。开始打包后会自动刷新日志。';
+    renderLogStream();
+    return;
+  }
+  fetchDetailedLogs(currentRunId, true);
+}
+
+function startLogPoll(runId){
+  if(!runId) return;
+  currentRunId = runId;
+  stopLogPoll();
+  logMeta.textContent = '正在读取 GitHub Actions 日志：Run #' + runId;
+  fetchDetailedLogs(runId, true);
+  logTimer = setInterval(() => fetchDetailedLogs(runId, false), 5000);
+}
+
+function stopLogPoll(){
+  if(logTimer){
+    clearInterval(logTimer);
+    logTimer = null;
+  }
+}
+
+async function fetchDetailedLogs(runId, showLoading=false){
+  if(!runId) return;
+  try{
+    if(showLoading && !logLinesCache.length) logMeta.textContent = '正在读取 GitHub Actions 日志：Run #' + runId;
+    const r = await fetch(WORKER + '/logs?run_id=' + encodeURIComponent(runId));
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || '日志读取失败');
+    if(Array.isArray(data.lines)){
+      logLinesCache = data.lines;
+      logHasError = logLinesCache.some(line => classifyLogLine(line).kind === 'error');
+      logBtn.classList.toggle('has-log-error', logHasError);
+      logMeta.textContent = logLinesCache.length
+        ? 'Run #' + runId + ' · 最近 ' + logLinesCache.length + ' 行日志'
+        : 'Run #' + runId + ' · 日志还未生成';
+      renderLogStream();
+    }
+  }catch(e){
+    logMeta.textContent = '日志读取失败：' + (e.message || '网络错误');
+  }
+}
+
+function classifyLogLine(line){
+  const s = String(line || '');
+  const lower = s.toLowerCase();
+  if(/invalid package|package segment|applicationid|namespace|manifest merger|java keyword|package name/.test(lower)){
+    return { kind:'error', badge:'包名' };
+  }
+  if(/icon|process_icon|pillow|cannot identify image|download.*image|download.*icon|image url|icon url|http.*(png|jpg|jpeg|webp)/.test(lower) && /error|failed|cannot|unable|invalid|timeout|exception|not found|404|403/.test(lower)){
+    return { kind:'error', badge:'图标' };
+  }
+  if(/compilereleasekotlin|compilation error|unresolved reference|expecting |\.kt:|kotlin/.test(lower) && /error|failed|unresolved|expecting|exception|cannot/.test(lower)){
+    return { kind:'error', badge:'Kotlin' };
+  }
+  if(/apksigner|zipalign|keystore|key_alias|key_password|keystore_base64|signer|signing/.test(lower) && /error|failed|cannot|unable|invalid|exception|not found|missing/.test(lower)){
+    return { kind:'error', badge:'签名' };
+  }
+  if(/failure: build failed|execution failed|exception| error |error:|failed|cannot|unable|no such/.test(lower)){
+    return { kind:'error', badge:'错误' };
+  }
+  if(/warning|deprecated|warn/.test(lower)){
+    return { kind:'warn', badge:'提示' };
+  }
+  if(/^run |^> task|^signed:|^upload|^download|^build|^process|^inject|^gradle|^checkout/i.test(s)){
+    return { kind:'step', badge:'步骤' };
+  }
+  return { kind:'', badge:'日志' };
+}
+
+function renderLogStream(){
+  if(!logStream) return;
+  if(!logLinesCache.length){
+    logStream.innerHTML = '<div class="log-empty">暂无日志</div>';
+    return;
+  }
+  logStream.innerHTML = logLinesCache.map(line => {
+    const cls = classifyLogLine(line);
+    const text = escapeLogHtml(line);
+    const klass = cls.kind ? ' log-line ' + cls.kind : ' log-line';
+    return '<div class="' + klass + '"><span class="log-line-badge">' + cls.badge + '</span><span>' + text + '</span></div>';
+  }).join('');
+  logStream.scrollTop = logStream.scrollHeight;
+}
+
+function escapeLogHtml(s){
+  return escapeHtml(s);
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 
@@ -885,7 +1124,15 @@ async function handleBuildClick(){
   if(busy) return;
   errBox.classList.remove('show');
   clearErrDetails();
-  if(!validate()) return;
+  resetLogPanel();
+  if(!validate()){
+    setManualLog([
+      '表单校验失败：请检查目标网址、App 名称、包名、版本号和图标设置。',
+      '包名需要使用小写英文、数字或下划线，并至少包含三段，例如 com.example.myapp。',
+      '在线图标模式下，图标 URL 必须以 http:// 或 https:// 开头。'
+    ], true);
+    return;
+  }
 
   const data = {
     app_url:      document.getElementById('f_url').value.trim(),
@@ -893,6 +1140,7 @@ async function handleBuildClick(){
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
     icon_mode:     getIconMode(),
+    ua_mode:       getUaMode(),
     icon_url:      getIconMode() === 'url' ? document.getElementById('f_icon').value.trim() : '',
     icon_color:    normalizeHexColor(document.getElementById('f_icon_color').value),
     no_screenshot: document.getElementById('f_no_screenshot').checked ? 'true' : 'false',
@@ -931,6 +1179,7 @@ async function handleBuildClick(){
         ? '网络连接失败，请检查网络后重试'
         : err.message);
     showErr(msg);
+    setManualLog(['触发构建失败：' + msg], true);
   } finally {
     setBusy(false);
   }
@@ -940,6 +1189,8 @@ function startPoll(runId, data, buildId=null, dispatchedAt=null){
   let elapsed = 0;
   const MAX_WAIT = 1800; // 最长等 30 分钟
   currentRunId = runId;
+  if(runId) startLogPoll(runId);
+  else logMeta.textContent = '构建已提交，正在等待 GitHub Actions 运行编号。';
   pollTimer = setInterval(async ()=>{
     elapsed += 5;
     try {
@@ -989,10 +1240,14 @@ function startPoll(runId, data, buildId=null, dispatchedAt=null){
           setBusy(false);
           renderDownloadButtons(data, runId);
           addHistory(data);
+          fetchDetailedLogs(runId, false);
+          stopLogPoll();
         } else if(data.conclusion === 'failure'){
           setStep(4,'fail');
           const failStep = data.failed_step ? `步骤「${data.failed_step}」失败` : '构建失败';
           showErr(data.failed_log ? (failStep + '，错误日志如下') : (failStep + '，请检查参数后重试'));
+          fetchDetailedLogs(runId, false);
+          mergeFailureLog(data.failed_log || failStep);
           if (data.failed_log) {
             clearErrDetails();
             const box = document.getElementById('statusBox');
@@ -1008,9 +1263,11 @@ function startPoll(runId, data, buildId=null, dispatchedAt=null){
             detail.innerHTML = `<div class="err-detail-title">错误日志</div><div class="err-detail-log">${safeLog}</div>${hint}`;
             box.appendChild(detail);
           }
+          stopLogPoll();
           setBusy(false);
         } else {
           // cancelled / timed_out 等，尝试拿 artifacts
+          stopLogPoll();
           tryFetchArtifacts(runId, data);
         }
         return;
@@ -1020,6 +1277,7 @@ function startPoll(runId, data, buildId=null, dispatchedAt=null){
       if(elapsed >= MAX_WAIT){
         clearInterval(pollTimer);
                 showErr('GitHub Actions 长时间未启动，可能是运行器繁忙，请稍后重试');
+        stopLogPoll();
         tryFetchArtifacts(runId, data);
       }
 
@@ -1136,13 +1394,13 @@ function renderDownloadButtons(data, runId){
     const dlBtn=document.createElement('button');
     dlBtn.type='button'; dlBtn.className='dl-btn';
     dlBtn.innerHTML=DL_ICO+' 下载 APK';
-    dlBtn.addEventListener('click',()=>{ window.location.href=dlUrl; });
+    dlBtn.addEventListener('click',()=>{ window.location.href=absoluteAppUrl(dlUrl); });
 
     // 二维码
     const qrBtn=document.createElement('button');
     qrBtn.type='button'; qrBtn.className='qr-btn';
     qrBtn.innerHTML=QR_ICO+' 扫码下载';
-    qrBtn.addEventListener('click',()=>{ showQR(new URL(dlUrl,window.location.href).href, label); });
+    qrBtn.addEventListener('click',()=>{ showQR(absoluteAppUrl(dlUrl), label); });
 
     // 复制链接
     const cpBtn=document.createElement('button');
@@ -1151,7 +1409,7 @@ function renderDownloadButtons(data, runId){
     cpBtn.addEventListener('click',(e)=>{
       e.preventDefault();
       e.stopPropagation();
-      const fullUrl=new URL(dlUrl,window.location.href).href;
+      const fullUrl=absoluteAppUrl(dlUrl);
       const done=()=>{
         cpBtn.innerHTML=OK_ICO+' 已复制';
         cpBtn.classList.add('copied');
@@ -1193,14 +1451,14 @@ function renderDownloadButtons(data, runId){
   }
 
   if(artifacts.length===0){
-    makeCard(WORKER+'/download?run_id='+runId,'APK','下载',true);
+    makeCard(downloadPath(runId, ''),'APK','下载',true);
   } else {
     artifacts.forEach((art,i)=>{
       const is64 =art.name&&/arm64/i.test(art.name);
       const is32 =art.name&&/armeabi/i.test(art.name);
       const label=is64?'64 位 APK':is32?'32 位 APK':'APK';
       const badge=is64?'64 Bit':is32?'32 Bit':'APK';
-      const dlUrl=WORKER+'/download?run_id='+runId+'&artifact_id='+art.id;
+      const dlUrl=downloadPath(runId, art.id);
       makeCard(dlUrl,label,badge,i===0);
     });
   }
@@ -1213,6 +1471,7 @@ function saveForm(){
   SAVE_KEYS.forEach(id => { saved[id] = document.getElementById(id).value; });
   SAVE_CHECK_KEYS.forEach(id => { saved[id] = document.getElementById(id).checked; });
   saved.icon_mode = getIconMode();
+  saved.ua_mode = getUaMode();
   localStorage.setItem('apkbuilder_form', JSON.stringify(saved));
 }
 function loadForm(){
@@ -1228,6 +1487,10 @@ function loadForm(){
       const mode = document.querySelector(`input[name="icon_mode"][value="${saved.icon_mode}"]`);
       if(mode) mode.checked = true;
     }
+    if(saved.ua_mode){
+      const mode = document.getElementById('f_ua_mode');
+      if(mode) mode.value = saved.ua_mode;
+    }
   } catch(e){}
 }
 SAVE_KEYS.forEach(id => {
@@ -1242,6 +1505,7 @@ document.querySelectorAll('input[name="icon_mode"]').forEach(el => {
     saveForm();
   });
 });
+document.getElementById('f_ua_mode').addEventListener('change', saveForm);
 loadForm();
 setupAutoPackageName();
 
@@ -1262,6 +1526,11 @@ const iconLetter = document.getElementById('iconLetter');
 function getIconMode(){
   const checked = document.querySelector('input[name="icon_mode"]:checked');
   return checked ? checked.value : 'generated';
+}
+
+function getUaMode(){
+  const select = document.getElementById('f_ua_mode');
+  return select ? select.value : 'auto';
 }
 
 function normalizeHexColor(value){
@@ -1367,9 +1636,36 @@ function historyIconHtml(item){
   if(item.icon_mode === 'generated'){
     const color = normalizeHexColor(item.icon_color || '#BF3EFF');
     const letter = generatedIconLetter(item.app_name, item.package_name);
-    return '<div class="icon-letter" style="display:flex;background:' + color + '">' + letter + '</div>';
+    return '<div class="icon-letter" style="display:flex;background:' + color + '">' + escapeHtml(letter) + '</div>';
   }
-  return item.icon_url ? '<img src="' + item.icon_url + '" onerror="this.style.display=\'none\'">' : '';
+  return item.icon_url ? '<img src="' + escapeHtml(item.icon_url) + '" onerror="this.style.display=\'none\'">' : '';
+}
+
+function downloadPath(runId, artifactId){
+  let url = WORKER + '/download';
+  const qs = [];
+  if(runId) qs.push('run_id=' + encodeURIComponent(runId));
+  if(artifactId) qs.push('artifact_id=' + encodeURIComponent(artifactId));
+  return qs.length ? url + '?' + qs.join('&') : url;
+}
+
+function artifactDownloadUrl(item, artifact){
+  if(item.run_id && artifact.id) return absoluteAppUrl(downloadPath(item.run_id, artifact.id));
+  if(artifact.download_url) return artifact.download_url;
+  return absoluteAppUrl(downloadPath('', artifact.id));
+}
+
+function historyDownloadsHtml(item){
+  const artifacts = item.artifacts || [];
+  if(!artifacts.length) return '';
+  return '<div class="history-dl">' + artifacts.map(a => {
+    const label = /arm64/i.test(a.name) ? '64 Bit' : /armeabi/i.test(a.name) ? '32 Bit' : 'APK';
+    const url = artifactDownloadUrl(item, a);
+    const encodedUrl = encodeURIComponent(url);
+    const safeUrl = escapeHtml(url);
+    const copyBtn = '<button class="history-cp-btn" onclick="event.stopPropagation();histCopyEncoded(this,\'' + encodedUrl + '\')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>';
+    return '<a class="history-dl-btn" href="' + safeUrl + '" target="_blank" onclick="event.stopPropagation()">' + label + '</a>' + copyBtn;
+  }).join('') + '</div>';
 }
 
 function renderHistory(){
@@ -1383,9 +1679,9 @@ function renderHistory(){
         ${historyIconHtml(item)}
       </div>
       <div class="history-info">
-        <div class="history-name">${item.app_name}</div>
-        <div class=\"history-meta\">${item.package_name} · v${item.version_name}${item.elapsed ? ' · <span class="css-clock"></span>' + (item.elapsed+'秒') : ''}</div>
-        ${item.artifacts && item.artifacts.length ? '<div class=\"history-dl\">' + item.artifacts.map(a=>{const l=/arm64/i.test(a.name)?'64 Bit':/armeabi/i.test(a.name)?'32 Bit':'APK';return (function(){ const url=item.run_id?WORKER+'/download?run_id='+item.run_id+'&artifact_id='+a.id:WORKER+'/download?artifact_id='+a.id;const copyBtn='<button class=\"history-cp-btn\" onclick=\"event.stopPropagation();histCopy(this,\\\''+url+'\\\')\"><svg width=\"11\" height=\"11\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"9\" y=\"9\" width=\"13\" height=\"13\" rx=\"2\"/><path d=\"M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\"/></svg></button>';return '<a class=\"history-dl-btn\" href=\"'+url+'\" target=\"_blank\" onclick=\"event.stopPropagation()\">'+l+'</a>'+copyBtn;})();}).join('') + '</div>' : ''}
+        <div class="history-name">${escapeHtml(item.app_name)}</div>
+        <div class=\"history-meta\">${escapeHtml(item.package_name)} · v${escapeHtml(item.version_name)}${item.elapsed ? ' · <span class="css-clock"></span>' + (Number(item.elapsed)||0) + '秒' : ''}</div>
+        ${historyDownloadsHtml(item)}
       </div>
       <div class="history-use">复用 ›</div>
     </div>
@@ -1404,6 +1700,8 @@ function renderHistory(){
       document.getElementById('f_icon_color').value = normalizeHexColor(item.icon_color || '#BF3EFF');
       const mode = document.querySelector('input[name="icon_mode"][value="' + (item.icon_mode || 'url') + '"]');
       if(mode) mode.checked = true;
+      const uaMode = document.getElementById('f_ua_mode');
+      if(uaMode) uaMode.value = item.ua_mode || 'auto';
       document.getElementById('f_show_disclaimer').checked = !!item.show_disclaimer;
       saveForm();
       syncIconModeUI();
@@ -1427,6 +1725,10 @@ function histCopy(btn, url){
   else{ const t=document.createElement('textarea');t.value=url;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t);ok(); }
 }
 
+function histCopyEncoded(btn, encodedUrl){
+  histCopy(btn, decodeURIComponent(encodedUrl));
+}
+
 function addHistory(data){
   const item = {
     run_id:       data.run_id || currentRunId,
@@ -1434,6 +1736,7 @@ function addHistory(data){
     package_name: document.getElementById('f_pkg').value.trim(),
     version_name: document.getElementById('f_ver').value.trim(),
     icon_mode:    getIconMode(),
+    ua_mode:      getUaMode(),
     icon_url:     getIconMode() === 'url' ? document.getElementById('f_icon').value.trim() : '',
     icon_color:   normalizeHexColor(document.getElementById('f_icon_color').value),
     show_disclaimer: document.getElementById('f_show_disclaimer').checked,
@@ -1502,5 +1805,3 @@ function updateThemeIcon(dark){
 
 </body>
 </html>
-
-<!-- deploy: 20260502-1138-index-fix -->

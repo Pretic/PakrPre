@@ -19,6 +19,9 @@ param(
     [ValidatePattern('^#?[0-9a-fA-F]{6}$')]
     [string]$IconColor = "#BF3EFF",
 
+    [ValidateSet("auto", "android", "iphone", "harmonyos", "android_pad", "ipad")]
+    [string]$UaMode = "auto",
+
     [switch]$NoScreenshot,
 
     [switch]$ShowDisclaimer,
@@ -69,6 +72,7 @@ $appNameXml = Escape-XmlText $AppName
 
 Replace-InFile $mainActivity "{{APP_URL}}" $AppUrl
 Replace-InFile $mainActivity "{{NO_SCREENSHOT}}" $noScreenshotValue
+Replace-InFile $mainActivity "{{UA_MODE}}" $UaMode
 Replace-InFile $splashActivity "{{SHOW_DISCLAIMER}}" $showDisclaimerValue
 Replace-InFile $manifest "{{APP_PACKAGE}}" $PackageName
 Replace-InFile $appBuild "{{APP_PACKAGE}}" $PackageName

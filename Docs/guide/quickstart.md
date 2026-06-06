@@ -27,7 +27,8 @@
 | `KEYSTORE_PASSWORD` | Keystore 密码（gen-keystore 时设置的） |
 | `KEY_ALIAS` | Key 别名（默认 `release`） |
 | `KEY_PASSWORD` | Key 密码（同 Keystore 密码） |
-| `GH_PAT` | GitHub PAT（需要 `repo` + `workflow` 权限） |
+
+这些只用于 APK 签名。GitHub PAT 不放在这里，后面放到 Cloudflare Pages 变量中。
 
 ## 第四步：部署到 Cloudflare Pages
 
@@ -46,7 +47,14 @@
    |--------|----|
    | `GITHUB_OWNER` | 你的 GitHub 用户名 |
    | `GITHUB_REPO` | `PakrPre` |
-   | `GH_PAT` | 你的 GitHub PAT |
+   | `GH_PAT` 或 `GITHUB_TOKEN` | 你的 GitHub PAT |
+
+   可选变量：
+
+   | 变量名 | 说明 |
+   |--------|------|
+   | `ADMIN_PASSWORD` | 管理密码。只有设置后才启用登录保护 |
+   | `PUBLIC_BASE_URL` | 自定义域名，例如 `https://pakrpre.precc.eu.cc` |
 
 4. 点击 **Save and Deploy**，等待部署完成。
 

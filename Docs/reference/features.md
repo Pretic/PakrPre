@@ -8,6 +8,11 @@
 | 🔏 Release 签名 | 自动 Keystore 签名，支持版本升级覆盖安装 |
 | 📦 多架构输出 | 同时生成 arm64-v8a + armeabi-v7a 两个 APK，体积约 4MB |
 | 🌐 支持任意网址 | HTTP / HTTPS 均可，支持 Cookie、文件上传、摄像头权限 |
+| 🎨 默认图标 | 支持在线图标，也支持按 App 名称或包名首字母生成默认图标 |
+| 🧭 访问身份 | 支持 Auto、Android、iPhone、HarmonyOS、Android Pad、iPad |
+| 🧩 元素屏蔽 | App 内右键/长按可屏蔽、查看、恢复元素，并支持规则导入导出 |
+| 🔎 详细日志 | 页面内查看 GitHub Actions 日志，常见错误会自动标红 |
+| 🔐 管理密码 | 可选启用 Cloudflare Pages 管理密码，保护打包页和下载链接 |
 | ⬇️ 系统下载 | 网页触发的下载通过系统 DownloadManager 保存到本地 |
 | 🔄 下拉刷新 | 滚动到顶部时下拉刷新页面 |
 | ⌨️ 键盘适配 | 软键盘弹出时页面自动上移，表单不被遮挡 |
