@@ -73,7 +73,6 @@ $manifest = Join-Path $workDir "app\src\main\AndroidManifest.xml"
 $strings = Join-Path $workDir "app\src\main\res\values\strings.xml"
 $mainActivity = Join-Path $workDir "app\src\main\java\com\webviewapp\MainActivity.kt"
 $splashActivity = Join-Path $workDir "app\src\main\java\com\webviewapp\SplashActivity.kt"
-$mainLayout = Join-Path $workDir "app\src\main\res\layout\activity_main.xml"
 
 $versionCode = [int][DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 $noScreenshotValue = if ($NoScreenshot) { "true" } else { "false" }
@@ -84,22 +83,11 @@ Replace-InFile $mainActivity "{{APP_URL}}" $AppUrl
 Replace-InFile $mainActivity "{{NO_SCREENSHOT}}" $noScreenshotValue
 Replace-InFile $mainActivity "{{UA_MODE}}" $UaMode
 Replace-InFile $splashActivity "{{SHOW_DISCLAIMER}}" $showDisclaimerValue
-Replace-InFile $manifest "{{APP_PACKAGE}}" $PackageName
 Replace-InFile $appBuild "{{APP_PACKAGE}}" $PackageName
 Replace-InFile $strings "{{APP_NAME}}" $appNameXml
 Replace-InFile $manifest "{{APP_NAME}}" $appNameXml
 Replace-InFile $appBuild "{{VERSION_NAME}}" $VersionName
 Replace-InFile $appBuild "{{VERSION_CODE}}" ([string]$versionCode)
-
-$packagePath = $PackageName.Replace(".", "\")
-$sourceDir = Join-Path $workDir "app\src\main\java\com\webviewapp"
-$targetDir = Join-Path $workDir "app\src\main\java\$packagePath"
-New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
-Get-ChildItem -LiteralPath $sourceDir -Filter "*.kt" | ForEach-Object {
-    Replace-InFile $_.FullName "package com.webviewapp" "package $PackageName"
-    Move-Item -LiteralPath $_.FullName -Destination (Join-Path $targetDir $_.Name) -Force
-}
-Replace-InFile $mainLayout "com.webviewapp" $PackageName
 
 $env:ICON_MODE = $IconMode
 $env:ICON_URL = $IconUrl
@@ -116,7 +104,7 @@ try {
     & python Scripts\process_icon.py
     if ($LASTEXITCODE -ne 0) { throw "Icon processing failed." }
 
-    & .\gradlew.bat assembleDebug --no-daemon
+    & .\gradlew.bat clean assembleDebug --no-daemon --rerun-tasks
     if ($LASTEXITCODE -ne 0) { throw "Gradle build failed." }
 
     $apks = Get-ChildItem -Path "app\build\outputs\apk" -Recurse -Filter "*.apk"

@@ -44,6 +44,8 @@ on:
         description: Show app disclaimer on first launch (true/false)
         required: false
         default: "false"
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -82,7 +84,7 @@ jobs:
           sed -i "s|{{APP_URL}}|${URL_ESC}|g" app/src/main/java/com/webviewapp/MainActivity.kt
 
           PKG="${{ github.event.inputs.package_name }}"
-          sed -i "s|{{APP_PACKAGE}}|${PKG}|g" app/src/main/AndroidManifest.xml app/build.gradle
+          sed -i "s|{{APP_PACKAGE}}|${PKG}|g" app/build.gradle
 
           NAME="${{ github.event.inputs.app_name }}"
           NAME_XML=$(echo "$NAME" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g; s/'"'"'/\&apos;/g')
@@ -93,20 +95,22 @@ jobs:
           sed -i "s|{{VERSION_NAME}}|${VER}|g" app/build.gradle
           sed -i "s|{{VERSION_CODE}}|${VC}|g" app/build.gradle
 
-          PKG_PATH=$(echo $PKG | sed 's/\./\//g')
-          echo "PKG_PATH is: $PKG_PATH"
-          mkdir -p app/src/main/java/$PKG_PATH
-          sed -i "s|package com.webviewapp|package $PKG|g" app/src/main/java/com/webviewapp/*.kt
-          mv app/src/main/java/com/webviewapp/*.kt app/src/main/java/$PKG_PATH/
-          sed -i "s|com.webviewapp|$PKG|g" app/src/main/res/layout/activity_main.xml
-
           NO_SS="${{ github.event.inputs.no_screenshot }}"
-          sed -i "s|{{NO_SCREENSHOT}}|${NO_SS:-false}|g" app/src/main/java/$PKG_PATH/MainActivity.kt
+          sed -i "s|{{NO_SCREENSHOT}}|${NO_SS:-false}|g" app/src/main/java/com/webviewapp/MainActivity.kt
           UA_MODE="${{ github.event.inputs.ua_mode }}"
-          sed -i "s|{{UA_MODE}}|${UA_MODE:-auto}|g" app/src/main/java/$PKG_PATH/MainActivity.kt
+          sed -i "s|{{UA_MODE}}|${UA_MODE:-auto}|g" app/src/main/java/com/webviewapp/MainActivity.kt
 
           SHOW_DISC="${{ github.event.inputs.show_disclaimer }}"
-          sed -i "s|{{SHOW_DISCLAIMER}}|${SHOW_DISC:-false}|g" app/src/main/java/$PKG_PATH/SplashActivity.kt
+          sed -i "s|{{SHOW_DISCLAIMER}}|${SHOW_DISC:-false}|g" app/src/main/java/com/webviewapp/SplashActivity.kt
+
+          echo "Expected package: $PKG"
+          echo "Expected app name: $NAME"
+          grep -F "applicationId \"$PKG\"" app/build.gradle
+          grep -F "const val APP_URL = \"$URL\"" app/src/main/java/com/webviewapp/MainActivity.kt
+          if grep -R "{{" app/build.gradle app/src/main app/src/main/res; then
+            echo "Unreplaced template placeholders remain."
+            exit 1
+          fi
 
       - name: Process icon
         env:
@@ -122,7 +126,8 @@ jobs:
       - name: Build APK
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          rm -rf app/build
+          ./gradlew clean assembleRelease --no-daemon --rerun-tasks
 
       - name: Sign APK
         run: |
@@ -147,6 +152,8 @@ jobs:
           SAFE=$(echo "${{ github.event.inputs.package_name }}" | LC_ALL=C tr -cd 'A-Za-z0-9_.-')
           [ -z "$SAFE" ] && SAFE="app"
           VER="${{ github.event.inputs.version_name }}"
+          EXPECTED_PKG="${{ github.event.inputs.package_name }}"
+          EXPECTED_LABEL="${{ github.event.inputs.app_name }}"
           mkdir -p /tmp/signed
           for APK in $(find app/build/outputs/apk -name '*.apk' 2>/dev/null); do
             ABI=$(echo "$APK" | grep -oE 'arm64-v8a|armeabi-v7a' || echo "universal")
@@ -156,6 +163,19 @@ jobs:
               --ks /tmp/release.keystore --ks-pass "pass:$KS_PASS" \
               --ks-key-alias "$KEY_ALIAS" --key-pass "pass:$KEY_PASS" \
               --out "$OUT" /tmp/aligned_${ABI}.apk
+            BADGING=$($ANDROID_HOME/build-tools/$BUILD_TOOLS/aapt dump badging "$OUT")
+            ACTUAL_PKG=$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p" | head -1)
+            ACTUAL_LABEL=$(printf '%s\n' "$BADGING" | sed -n "s/^application-label:'\(.*\)'/\1/p" | head -1)
+            echo "Verified package: $ACTUAL_PKG"
+            echo "Verified app label: $ACTUAL_LABEL"
+            if [ "$ACTUAL_PKG" != "$EXPECTED_PKG" ]; then
+              echo "Package mismatch: expected $EXPECTED_PKG, got $ACTUAL_PKG"
+              exit 1
+            fi
+            if [ "$ACTUAL_LABEL" != "$EXPECTED_LABEL" ]; then
+              echo "App label mismatch: expected $EXPECTED_LABEL, got $ACTUAL_LABEL"
+              exit 1
+            fi
             echo "Signed: $OUT"
           done
           echo "APK_BASE=${SAFE}_${VER}" >> $GITHUB_ENV
