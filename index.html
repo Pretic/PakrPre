@@ -683,22 +683,33 @@ footer{border-top-color:var(--border);color:var(--faint)}
             <input type="text" id="f_ver" placeholder="1.0.0" value="1.0.0" required>
           </div>
           <div class="field">
-            <label>图标来源</label>
+            <label>应用图标</label>
             <div class="icon-mode">
-              <label><input type="radio" name="icon_mode" value="generated" checked><span>默认图标</span></label>
-              <label><input type="radio" name="icon_mode" value="url"><span>在线图标</span></label>
+              <label><input type="radio" name="icon_mode" value="generated" checked><span>文字图标</span></label>
+              <label><input type="radio" name="icon_mode" value="url"><span>图片图标</span></label>
             </div>
           </div>
           <div class="icon-generated-row" id="iconGeneratedRow">
             <div class="field">
-              <label for="f_icon_color">默认图标颜色</label>
+              <label for="f_icon_color">文字图标颜色</label>
               <div class="icon-color-wrap">
                 <input type="text" id="f_icon_color" value="#BF3EFF" placeholder="#BF3EFF" maxlength="7">
-                <input type="color" id="f_icon_color_picker" value="#bf3eff" aria-label="选择默认图标颜色">
+                <input type="color" id="f_icon_color_picker" value="#bf3eff" aria-label="选择文字图标颜色">
               </div>
             </div>
             <div class="icon-preview" id="generatedIconPreview">
               <div class="icon-letter" id="iconLetter">A</div>
+            </div>
+          </div>
+          <div class="icon-field" id="iconUrlRow">
+            <div class="field">
+              <label for="f_icon">图标 URL</label>
+              <input type="url" id="f_icon" placeholder="可直接访问的 PNG/JPG 图标地址">
+              <div class="hint">留空或无法读取时使用默认图标 logo.jpg</div>
+            </div>
+            <div class="icon-preview" id="iconPreview">
+              <svg class="icon-preview-placeholder" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              <img id="iconImg" alt="icon">
             </div>
           </div>
           <div class="field">
@@ -711,16 +722,6 @@ footer{border-top-color:var(--border);color:var(--faint)}
               <option value="android_pad">Android Pad</option>
               <option value="ipad">iPad</option>
             </select>
-          </div>
-          <div class="icon-field" id="iconUrlRow">
-            <div class="field">
-              <label for="f_icon">图标 URL</label>
-              <input type="url" id="f_icon" placeholder="可直接访问的 PNG/JPG 图标地址">
-            </div>
-            <div class="icon-preview" id="iconPreview">
-              <svg class="icon-preview-placeholder" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-              <img id="iconImg" alt="icon">
-            </div>
           </div>
 
         <div class="toggle-row">
@@ -781,7 +782,6 @@ footer{border-top-color:var(--border);color:var(--faint)}
         </div>
       </div>
       <div class="err-msg" id="errBox"></div>
-      <div id="iconFallbackTip" style="display:none;margin-top:10px;font-size:12px;color:#666">图标下载失败，已自动回退为默认 logo.jpg</div>
       <div id="dlActions"></div>
       </div>
     </div>
@@ -1103,15 +1103,7 @@ function validate(){
   }
   const iconUrl = document.getElementById('f_icon');
   const iconColor = document.getElementById('f_icon_color');
-  if(getIconMode() === 'url'){
-    const value = iconUrl.value.trim();
-    if(!/^https?:\/\//i.test(value)){
-      iconUrl.classList.add('err');
-      ok = false;
-    } else iconUrl.classList.remove('err');
-  } else {
-    iconUrl.classList.remove('err');
-  }
+  iconUrl.classList.remove('err');
   if(!/^#?[0-9a-f]{6}$/i.test(iconColor.value.trim())){
     iconColor.classList.add('err');
     ok = false;
@@ -1129,7 +1121,7 @@ async function handleBuildClick(){
     setManualLog([
       '表单校验失败：请检查目标网址、App 名称、包名、版本号和图标设置。',
       '包名需要使用小写英文、数字或下划线，并至少包含三段，例如 com.example.myapp。',
-      '在线图标模式下，图标 URL 必须以 http:// 或 https:// 开头。'
+      '图片图标的 URL 可以留空；留空或无法读取时会使用默认图标 logo.jpg。'
     ], true);
     return;
   }
@@ -1141,7 +1133,7 @@ async function handleBuildClick(){
     version_name: document.getElementById('f_ver').value.trim(),
     icon_mode:     getIconMode(),
     ua_mode:       getUaMode(),
-    icon_url:      getIconMode() === 'url' ? document.getElementById('f_icon').value.trim() : '',
+    icon_url:      getIconMode() === 'url' ? getImageIconUrl() : '',
     icon_color:    normalizeHexColor(document.getElementById('f_icon_color').value),
     no_screenshot: document.getElementById('f_no_screenshot').checked ? 'true' : 'false',
     show_disclaimer: document.getElementById('f_show_disclaimer').checked ? 'true' : 'false',
@@ -1514,6 +1506,7 @@ setupAutoPackageName();
 
 
 /* ── 图标预览 ── */
+const DEFAULT_IMAGE_ICON = 'logo.jpg';
 const iconInput   = document.getElementById('f_icon');
 const iconImg     = document.getElementById('iconImg');
 const iconPreview = document.getElementById('iconPreview');
@@ -1536,6 +1529,15 @@ function getUaMode(){
 function normalizeHexColor(value){
   const m = String(value || '').trim().match(/^#?([0-9a-f]{6})$/i);
   return m ? '#' + m[1].toUpperCase() : '#BF3EFF';
+}
+
+function isValidIconUrl(value){
+  return /^https?:\/\//i.test(String(value || '').trim());
+}
+
+function getImageIconUrl(){
+  const value = iconInput.value.trim();
+  return isValidIconUrl(value) ? value : '';
 }
 
 function generatedIconLetter(appName, packageName){
@@ -1562,7 +1564,7 @@ function syncIconModeUI(){
   const generated = getIconMode() === 'generated';
   iconGeneratedRow.style.display = generated ? 'grid' : 'none';
   iconUrlRow.style.display = generated ? 'none' : 'flex';
-  iconInput.required = !generated;
+  iconInput.required = false;
   if(generated) syncGeneratedIconPreview();
   else triggerIconPreview(iconInput.value.trim());
 }
@@ -1570,10 +1572,7 @@ function syncIconModeUI(){
 function triggerIconPreview(url){
   iconPreview.className = 'icon-preview';
   iconImg.style.display = 'none';
-  if(!url || (!url.startsWith('http://') && !url.startsWith('https://'))){
-    // 空或非 URL，回到默认占位
-    return;
-  }
+  const src = isValidIconUrl(url) ? url.trim() : DEFAULT_IMAGE_ICON;
   iconPreview.classList.add('loading');
   const tmp = new Image();
   tmp.onload  = () => {
@@ -1582,10 +1581,14 @@ function triggerIconPreview(url){
     iconPreview.className = 'icon-preview ok';
   };
   tmp.onerror = () => {
+    if(src !== DEFAULT_IMAGE_ICON){
+      triggerIconPreview('');
+      return;
+    }
     iconImg.style.display = 'none';
     iconPreview.className = 'icon-preview err';
   };
-  tmp.src = url;
+  tmp.src = src;
 }
 
 iconInput.addEventListener('input', () => {
@@ -1626,19 +1629,19 @@ function toggleHistoryPanel(){
   overlay.classList.toggle('open', !isOpen);
 }
 
-const historyCard = null; // moved to panel
 const historyList = document.getElementById('historyList');
 const historyClear = document.getElementById('historyClear');
 
 function getHistory(){ try{ return JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); }catch(e){ return []; } }
 function saveHistory(h){ localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0,5))); }
 function historyIconHtml(item){
-  if(item.icon_mode === 'generated'){
+  const mode = item.icon_mode || (isValidIconUrl(item.icon_url) ? 'url' : 'generated');
+  if(mode === 'generated'){
     const color = normalizeHexColor(item.icon_color || '#BF3EFF');
     const letter = generatedIconLetter(item.app_name, item.package_name);
     return '<div class="icon-letter" style="display:flex;background:' + color + '">' + escapeHtml(letter) + '</div>';
   }
-  return item.icon_url ? '<img src="' + escapeHtml(item.icon_url) + '" onerror="this.style.display=\'none\'">' : '';
+  return '<img src="' + escapeHtml(isValidIconUrl(item.icon_url) ? item.icon_url : DEFAULT_IMAGE_ICON) + '" onerror="this.onerror=null;this.src=\'' + DEFAULT_IMAGE_ICON + '\'">';
 }
 
 function downloadPath(runId, artifactId){
@@ -1698,7 +1701,8 @@ function renderHistory(){
       document.getElementById('f_ver').value = _vp.join('.');
       document.getElementById('f_icon').value = item.icon_url;
       document.getElementById('f_icon_color').value = normalizeHexColor(item.icon_color || '#BF3EFF');
-      const mode = document.querySelector('input[name="icon_mode"][value="' + (item.icon_mode || 'url') + '"]');
+      const restoredIconMode = item.icon_mode || (isValidIconUrl(item.icon_url) ? 'url' : 'generated');
+      const mode = document.querySelector('input[name="icon_mode"][value="' + restoredIconMode + '"]');
       if(mode) mode.checked = true;
       const uaMode = document.getElementById('f_ua_mode');
       if(uaMode) uaMode.value = item.ua_mode || 'auto';
@@ -1737,7 +1741,7 @@ function addHistory(data){
     version_name: document.getElementById('f_ver').value.trim(),
     icon_mode:    getIconMode(),
     ua_mode:      getUaMode(),
-    icon_url:     getIconMode() === 'url' ? document.getElementById('f_icon').value.trim() : '',
+    icon_url:     getIconMode() === 'url' ? getImageIconUrl() : '',
     icon_color:   normalizeHexColor(document.getElementById('f_icon_color').value),
     show_disclaimer: document.getElementById('f_show_disclaimer').checked,
     app_url:      document.getElementById('f_url').value.trim(),

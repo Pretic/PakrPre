@@ -21,15 +21,15 @@ on:
         required: true
         default: 1.0.0
       icon_url:
-        description: Icon Image URL
+        description: Image icon URL, optional; falls back to logo.jpg
         required: false
         default: ""
       icon_mode:
-        description: Icon mode (url/generated)
+        description: Icon mode (generated text icon or url image icon)
         required: false
         default: "generated"
       icon_color:
-        description: Generated icon color
+        description: Text icon color
         required: false
         default: "#BF3EFF"
       ua_mode:

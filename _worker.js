@@ -231,8 +231,7 @@ async function handleBuild(request, env) {
   if (!version_name || version_name.length > 32)
     return json({ error: 'version_name must be 1-32 characters' }, 400);
   const resolvedIconMode = icon_mode === 'url' ? 'url' : 'generated';
-  if (resolvedIconMode === 'url' && !/^https?:\/\//i.test(icon_url || ''))
-    return json({ error: 'Icon URL is required when using online icon mode' }, 400);
+  const resolvedIconUrl = resolvedIconMode === 'url' && /^https?:\/\//i.test(icon_url || '') ? icon_url : '';
   const resolvedIconColor = /^#?[0-9a-f]{6}$/i.test(icon_color || '') ? icon_color : '#BF3EFF';
   const allowedUaModes = new Set(['auto', 'android', 'iphone', 'harmonyos', 'android_pad', 'ipad']);
   const resolvedUaMode = allowedUaModes.has(ua_mode) ? ua_mode : 'auto';
@@ -248,7 +247,7 @@ async function handleBuild(request, env) {
           version_name,
           icon_mode: resolvedIconMode,
           ua_mode: resolvedUaMode,
-          icon_url: resolvedIconMode === 'url' ? icon_url : '',
+          icon_url: resolvedIconUrl,
           icon_color: resolvedIconColor,
           no_screenshot: no_screenshot||'false',
           show_disclaimer: show_disclaimer||'false',

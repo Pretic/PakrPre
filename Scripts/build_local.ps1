@@ -52,8 +52,18 @@ $buildId = Get-Date -Format "yyyyMMdd-HHmmss"
 $workDir = Join-Path $root "build\local-work\$buildId"
 New-Item -ItemType Directory -Path $workDir -Force | Out-Null
 
+$excludedNames = @(
+    ".git", "build", ".gradle", ".wrangler", ".deploy-pages", ".codex-inspect", ".compare-repos",
+    "local.properties"
+)
+$excludedExtensions = @(".jks", ".keystore", ".p12", ".pem", ".key", ".lnk")
+
 Get-ChildItem -LiteralPath $root -Force |
-    Where-Object { $_.Name -notin @(".git", "build") } |
+    Where-Object {
+        $_.Name -notin $excludedNames -and
+        -not $_.Name.StartsWith(".env") -and
+        $_.Extension -notin $excludedExtensions
+    } |
     ForEach-Object {
         Copy-Item -LiteralPath $_.FullName -Destination $workDir -Recurse -Force
     }

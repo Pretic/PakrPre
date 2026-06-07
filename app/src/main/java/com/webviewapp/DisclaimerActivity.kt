@@ -3,6 +3,7 @@ package com.webviewapp
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
@@ -25,8 +26,49 @@ class DisclaimerActivity : AppCompatActivity() {
             append("使用本应用产生的一切法律责任由使用者自行承担。")
         }
 
+        val scrollView = findViewById<android.widget.ScrollView>(R.id.scrollDisclaimer)
+        val cbAgree = findViewById<CheckBox>(R.id.cbAgree)
+        val btnAccept = findViewById<Button>(R.id.btnAccept)
+
+        cbAgree.isEnabled = false
+        cbAgree.alpha = 0.45f
+        btnAccept.isEnabled = false
+        btnAccept.alpha = 0.4f
+
+        var hasScrolledToBottom = false
+
+        fun unlockAgreement() {
+            if (hasScrolledToBottom) return
+            hasScrolledToBottom = true
+            cbAgree.isEnabled = true
+            cbAgree.animate().alpha(1f).setDuration(180).start()
+        }
+
+        fun isScrolledToBottom(): Boolean {
+            val child = scrollView.getChildAt(0) ?: return true
+            return child.bottom - (scrollView.height + scrollView.scrollY) <= 8
+        }
+
+        scrollView.viewTreeObserver.addOnScrollChangedListener {
+            if (isScrolledToBottom()) unlockAgreement()
+        }
+
+        scrollView.viewTreeObserver.addOnGlobalLayoutListener(object : android.view.ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                scrollView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                if (isScrolledToBottom()) unlockAgreement()
+            }
+        })
+
+        cbAgree.setOnCheckedChangeListener { _, checked ->
+            btnAccept.isEnabled = checked
+            if (!isFinishing) {
+                btnAccept.animate().alpha(if (checked) 1f else 0.4f).setDuration(180).start()
+            }
+        }
+
         findViewById<Button>(R.id.btnDecline).setOnClickListener { finishAffinity() }
-        findViewById<Button>(R.id.btnAccept).setOnClickListener { proceed() }
+        btnAccept.setOnClickListener { proceed() }
     }
 
     private fun proceed() {

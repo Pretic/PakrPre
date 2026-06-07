@@ -34,5 +34,5 @@ features:
     details: 同时生成 arm64-v8a + armeabi-v7a 两个 APK，体积约 4MB。
   - icon: 🌙
     title: 二开功能
-    details: 支持默认图标、访问身份、可选声明页、元素屏蔽和规则导入导出。
+    details: 支持文字图标、图片图标、访问身份、可选声明页、元素屏蔽和规则导入导出。
 ---

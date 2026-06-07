@@ -13,6 +13,7 @@ ICON_URL = os.environ.get("ICON_URL", "").strip()
 ICON_COLOR = os.environ.get("ICON_COLOR", "#BF3EFF").strip()
 APP_NAME = os.environ.get("APP_NAME", "").strip()
 PACKAGE_NAME = os.environ.get("PACKAGE_NAME", "").strip()
+DEFAULT_LOGO_NAMES = ("logo.jpg", "logo.jpeg", "logo.png")
 
 
 def normalize_color(value):
@@ -44,10 +45,28 @@ def load_font(size):
     return ImageFont.load_default()
 
 
+def valid_icon_url(url):
+    return bool(re.match(r"^https?://", url or "", re.I))
+
+
+def default_logo_icon():
+    search_dirs = [
+        Path.cwd(),
+        Path(__file__).resolve().parent.parent,
+    ]
+    for base in search_dirs:
+        for name in DEFAULT_LOGO_NAMES:
+            path = base / name
+            if path.exists():
+                print(f"Default logo icon: {path}")
+                return Image.open(path).convert("RGBA")
+    raise FileNotFoundError("Default logo.jpg was not found in repository root.")
+
+
 def download_icon(url):
-    if not url:
-        print("Icon URL is required in url mode.")
-        sys.exit(1)
+    if not valid_icon_url(url):
+        print("Image icon URL is empty or invalid; using default logo.")
+        return default_logo_icon()
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=15) as response:
@@ -56,8 +75,8 @@ def download_icon(url):
         print(f"Image OK: {img.format} {img.size}")
         return img
     except Exception as exc:
-        print(f"Download/open failed: {exc}")
-        sys.exit(1)
+        print(f"Image icon download/open failed: {exc}; using default logo.")
+        return default_logo_icon()
 
 
 def generated_icon():
@@ -73,7 +92,7 @@ def generated_icon():
     x = (size - width) / 2 - bbox[0]
     y = (size - height) / 2 - bbox[1] - size * 0.02
     draw.text((x, y), letter, font=font, fill="#FFFFFF")
-    print(f"Generated icon: {letter} on {color}")
+    print(f"Text icon: {letter} on {color}")
     return img
 
 

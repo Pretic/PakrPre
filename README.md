@@ -37,7 +37,7 @@ PakrPre 是基于原项目二次开发的版本。感谢原作者 **ZSFan / Zhan
 | Cloudflare Pages 部署 | 前端页面和 `_worker.js` 合并部署在 Cloudflare Pages，无需单独维护服务器 |
 | 多架构输出 | 同时输出 `arm64-v8a` 和 `armeabi-v7a` APK |
 | Release 签名 | 支持自定义 Keystore；未配置时会自动使用稳定开发签名，同包名可覆盖安装，不建议正式分发 |
-| 自定义图标 | 支持在线图标，也支持按 App 名称/包名生成默认图标和自定义十六进制颜色 |
+| 应用图标 | 支持文字图标，也支持图片图标；图片 URL 留空或无法读取时自动使用 `logo.jpg` |
 | 访问身份 | 可选择 `Auto`、`Android`、`iPhone`、`HarmonyOS`、`Android Pad`、`iPad` 等 UA |
 | 可选声明页 | 生成时可选择是否在 App 首次进入时显示免责声明 |
 | 禁止截图 | 可选择是否在 App 内禁止截图/录屏 |
@@ -185,7 +185,7 @@ PUBLIC_BASE_URL=https://你的域名
 - App 名称
 - 包名
 - 版本号
-- 图标来源 / 默认图标颜色
+- 应用图标 / 文字图标颜色 / 图片图标 URL
 - 访问身份
 - 禁止截图 / 添加声明
 
@@ -223,7 +223,7 @@ _worker.js 触发 GitHub Actions workflow_dispatch
   ▼
 GitHub Actions
   ├── 注入 URL / 包名 / 版本号 / 图标 / UA / 开关参数
-  ├── 处理在线图标或默认图标
+  ├── 处理文字图标、图片图标或默认 logo.jpg
   ├── Gradle 编译 APK
   ├── zipalign + apksigner 签名
   └── 上传 arm64-v8a / armeabi-v7a Artifacts

@@ -75,8 +75,23 @@
     }
   }
 
+  function applyNativeFontScale() {
+    try {
+      if (bridge.applyFontScale) {
+        bridge.applyFontScale(host, fontScale);
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   function applyFontScale() {
+    var handledByNative = applyNativeFontScale();
     var style = document.getElementById(fontStyleId);
+    if (handledByNative) {
+      if (style) style.remove();
+      return;
+    }
     if (fontScale === "normal") {
       if (style) style.remove();
       return;
@@ -88,6 +103,7 @@
     }
     var ratio = fontScale === "large" ? "112%" : "94%";
     style.textContent =
+      "html{font-size:" + ratio + "!important;-webkit-text-size-adjust:" + ratio + "!important;text-size-adjust:" + ratio + "!important;}" +
       "body{font-size:" + ratio + "!important;line-height:1.68!important;}" +
       "p,article,main,section,li,blockquote{line-height:1.68!important;}" +
       "img,video{max-width:100%!important;height:auto!important;}";
@@ -247,6 +263,40 @@
     while (el && el.nodeType === 1 && el !== document.documentElement) {
       var tag = el.tagName ? el.tagName.toLowerCase() : "";
       if ((tag === "a" || tag === "area") && el.href) return el.href;
+      el = el.parentElement;
+    }
+    return "";
+  }
+
+  function absoluteUrlFor(value) {
+    value = String(value || "").trim();
+    if (!value || value === "#") return "";
+    try {
+      return new URL(value, location.href).href;
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function backgroundImageUrlFor(el) {
+    try {
+      var bg = getComputedStyle(el).backgroundImage || "";
+      var match = bg.match(/^url\((["']?)(.+?)\1\)$/);
+      return match ? absoluteUrlFor(match[2]) : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function imagePreviewFor(el) {
+    el = normalizeElement(el);
+    while (el && el.nodeType === 1 && el !== document.documentElement) {
+      var tag = el.tagName ? el.tagName.toLowerCase() : "";
+      if (tag === "img" || tag === "image") {
+        return absoluteUrlFor(el.currentSrc || el.src || el.getAttribute("src") || el.getAttribute("href") || el.getAttribute("xlink:href"));
+      }
+      var backgroundUrl = backgroundImageUrlFor(el);
+      if (backgroundUrl) return backgroundUrl;
       el = el.parentElement;
     }
     return "";
@@ -716,12 +766,13 @@
       row.appendChild(button);
     });
     actions.push(row);
-    showPanel("字号", "当前域名：" + host + "\nA- 缩小 · A 恢复默认 · A+ 放大", actions);
+    showPanel("调整字号", "当前域名：" + host + "\nA- 缩小 · A 恢复默认 · A+ 放大", actions);
   }
 
   function showMenu(x, y, target) {
     removeUi();
     lastTarget = target && isUiElement(target) ? null : normalizeElement(target);
+    var imageToPreview = imagePreviewFor(lastTarget);
     var textToCopy = copyableTextFor(lastTarget);
     var linkToCopy = copyableLinkFor(lastTarget);
 
@@ -730,6 +781,15 @@
     menu.className = uiPrefix + "menu";
 
     var items = [];
+    if (imageToPreview) {
+      items.push({
+        label: "图片预览",
+        action: function () {
+          try { bridge.previewImage(imageToPreview); } catch (_) { showToast("无法预览图片"); }
+          removeUi();
+        }
+      });
+    }
     if (textToCopy) {
       items.push({
         label: "复制文本",
@@ -745,7 +805,7 @@
     items = items.concat([
       { label: "屏蔽元素", requiresTarget: true, action: function () { if (lastTarget) startPicker(lastTarget); } },
       { label: "查看元素", requiresTarget: true, action: function () { if (lastTarget) inspectElement(lastTarget); } },
-      { label: "字号", action: function () { showFontPanel(); } },
+      { label: "调整字号", action: function () { showFontPanel(); } },
       { label: "已屏蔽列表", action: function () { showRulesPanel(); } }
     ]);
 
