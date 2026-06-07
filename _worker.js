@@ -403,26 +403,21 @@ async function handleDownload(request, env) {
   const artifactId = params.get('artifact_id');
   if (!runId) return json({ error: 'Missing run_id' }, 400);
 
-  let resolvedId = artifactId;
-  let artifactName = 'apk';
+  const artifacts = await listRunArtifacts(env, runId);
+  const artifact = artifactId
+    ? artifacts.find(a => String(a.id) === String(artifactId))
+    : artifacts[0];
 
-  if (!resolvedId) {
-    // 没有指定 artifact_id，查列表取第一个
-    const arts = await (await gh(env,
-      `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/artifacts`
-    )).json();
-    const a = arts.artifacts?.[0];
-    if (!a) return json({ error: 'Artifact not found' }, 404);
-    resolvedId = a.id;
-    artifactName = a.name;
-  }
+  if (!artifact) return json({ error: 'Artifact not found', run_id: runId, artifact_id: artifactId || '' }, 404);
+  if (artifact.expired) return json({ error: 'Artifact expired', artifact_id: artifact.id }, 410);
 
-  // GitHub artifact 下载：先拿重定向 URL，再不带 Auth 头去 S3 下载
+  const resolvedId = artifact.id;
+  const artifactName = safeDownloadName(artifact.name || 'apk');
+
   const dlRedirect = await gh(env,
     `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/artifacts/${resolvedId}/zip`,
     { redirect: 'manual' }
   );
-  // 302 重定向到 S3，不能带 Authorization 头
   const s3Url = dlRedirect.headers.get('location');
   if (!s3Url) return json({ error: 'Download redirect failed', status: dlRedirect.status }, 502);
 
@@ -430,11 +425,10 @@ async function handleDownload(request, env) {
   if (!dl.ok) return json({ error: 'Download failed from S3', status: dl.status }, 502);
   const zipBuf = await dl.arrayBuffer();
 
-  // 尝试解压，直接返回 .apk
   try {
     const apk = await extractApkFromZip(zipBuf);
-    if (apk) {
-      const apkName = artifactName.replace(/\.zip$/, '') + '.apk';
+    if (apk && apk.byteLength > 0) {
+      const apkName = artifactName.replace(/\.zip$/i, '') + '.apk';
       return new Response(apk, {
         headers: {
           'Content-Type': 'application/vnd.android.package-archive',
@@ -446,7 +440,6 @@ async function handleDownload(request, env) {
     }
   } catch (_) {}
 
-  // 解压失败，降级返回原始 ZIP
   return new Response(zipBuf, {
     headers: {
       'Content-Type': 'application/zip',
@@ -456,35 +449,123 @@ async function handleDownload(request, env) {
   });
 }
 
-// 解析 ZIP Local File Headers，提取第一个 .apk 文件字节（支持 stored + deflate）
+async function listRunArtifacts(env, runId) {
+  const res = await gh(env, `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/artifacts`);
+  const data = await res.json();
+  return Array.isArray(data.artifacts) ? data.artifacts : [];
+}
+
+function safeDownloadName(name) {
+  const cleaned = String(name || 'apk').replace(/[^\w.-]+/g, '_').slice(0, 160);
+  return cleaned || 'apk';
+}
+
 async function extractApkFromZip(buf) {
   const view  = new DataView(buf);
   const bytes = new Uint8Array(buf);
-  let offset  = 0;
-  while (offset + 30 < bytes.length) {
-    if (view.getUint32(offset, true) !== 0x04034b50) break;
-    const compression = view.getUint16(offset + 8,  true);
-    const compSize    = view.getUint32(offset + 18, true);
-    const uncompSize  = view.getUint32(offset + 22, true);
-    const nameLen     = view.getUint16(offset + 26, true);
-    const extraLen    = view.getUint16(offset + 28, true);
-    const name        = new TextDecoder().decode(bytes.slice(offset + 30, offset + 30 + nameLen));
-    const dataOffset  = offset + 30 + nameLen + extraLen;
-    if (name.endsWith('.apk')) {
-      const slice = buf.slice(dataOffset, dataOffset + compSize);
-      if (compression === 0) return slice;           // stored
-      if (compression === 8) {                       // deflate
-        const ds = new DecompressionStream('deflate-raw');
-        const writer = ds.writable.getWriter();
-        writer.write(new Uint8Array(slice));
-        writer.close();
-        return new Response(ds.readable).arrayBuffer();
+  const decoder = new TextDecoder();
+  const eocd = findZipEocd(view, bytes.length);
+
+  if (eocd) {
+    let centralOffset = view.getUint32(eocd + 16, true);
+    const centralSize = view.getUint32(eocd + 12, true);
+    const centralEnd = Math.min(bytes.length, centralOffset + centralSize);
+
+    while (centralOffset + 46 <= centralEnd && view.getUint32(centralOffset, true) === 0x02014b50) {
+      const compression = view.getUint16(centralOffset + 10, true);
+      let compSize = view.getUint32(centralOffset + 20, true);
+      let uncompSize = view.getUint32(centralOffset + 24, true);
+      let localOffset = view.getUint32(centralOffset + 42, true);
+      const nameLen = view.getUint16(centralOffset + 28, true);
+      const extraLen = view.getUint16(centralOffset + 30, true);
+      const commentLen = view.getUint16(centralOffset + 32, true);
+      const nameStart = centralOffset + 46;
+      const extraStart = nameStart + nameLen;
+      const name = decoder.decode(bytes.slice(nameStart, extraStart));
+
+      if (uncompSize === 0xffffffff || compSize === 0xffffffff || localOffset === 0xffffffff) {
+        const zip64 = parseZip64Extra(bytes, extraStart, extraLen, { uncompSize, compSize, localOffset });
+        uncompSize = zip64.uncompSize;
+        compSize = zip64.compSize;
+        localOffset = zip64.localOffset;
       }
+
+      if (name.endsWith('.apk')) {
+        const dataOffset = zipDataOffset(view, localOffset);
+        return readZipEntry(buf, dataOffset, compSize, compression);
+      }
+
+      centralOffset = extraStart + extraLen + commentLen;
     }
-    // ZIP entries may include a trailing data descriptor.
-    let nextOffset = dataOffset + compSize;
-    if (view.getUint32(nextOffset, true) === 0x08074b50) nextOffset += 16;
-    offset = nextOffset;
+  }
+
+  let offset = 0;
+  while (offset + 30 < bytes.length && view.getUint32(offset, true) === 0x04034b50) {
+    const compression = view.getUint16(offset + 8, true);
+    const compSize = view.getUint32(offset + 18, true);
+    const nameLen = view.getUint16(offset + 26, true);
+    const extraLen = view.getUint16(offset + 28, true);
+    const name = decoder.decode(bytes.slice(offset + 30, offset + 30 + nameLen));
+    const dataOffset = offset + 30 + nameLen + extraLen;
+    if (name.endsWith('.apk') && compSize > 0) return readZipEntry(buf, dataOffset, compSize, compression);
+    if (compSize <= 0) break;
+    offset = dataOffset + compSize;
+  }
+
+  return null;
+}
+
+function findZipEocd(view, length) {
+  const min = Math.max(0, length - 65557);
+  for (let offset = length - 22; offset >= min; offset--) {
+    if (view.getUint32(offset, true) === 0x06054b50) return offset;
+  }
+  return null;
+}
+
+function parseZip64Extra(bytes, offset, length, values) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let cursor = offset;
+  const end = offset + length;
+  const nextU64 = () => {
+    const value = Number(view.getBigUint64(cursor, true));
+    cursor += 8;
+    return value;
+  };
+
+  while (cursor + 4 <= end) {
+    const headerId = view.getUint16(cursor, true);
+    const size = view.getUint16(cursor + 2, true);
+    cursor += 4;
+    if (headerId === 0x0001) {
+      if (values.uncompSize === 0xffffffff && cursor + 8 <= end) values.uncompSize = nextU64();
+      if (values.compSize === 0xffffffff) {
+        if (cursor + 8 <= end) values.compSize = nextU64();
+      }
+      if (values.localOffset === 0xffffffff && cursor + 8 <= end) values.localOffset = nextU64();
+      return values;
+    }
+    cursor += size;
+  }
+  return values;
+}
+
+function zipDataOffset(view, localOffset) {
+  if (view.getUint32(localOffset, true) !== 0x04034b50) throw new Error('Invalid ZIP local header');
+  const nameLen = view.getUint16(localOffset + 26, true);
+  const extraLen = view.getUint16(localOffset + 28, true);
+  return localOffset + 30 + nameLen + extraLen;
+}
+
+async function readZipEntry(buf, dataOffset, compSize, compression) {
+  const slice = buf.slice(dataOffset, dataOffset + compSize);
+  if (compression === 0) return slice;
+  if (compression === 8) {
+    const ds = new DecompressionStream('deflate-raw');
+    const writer = ds.writable.getWriter();
+    await writer.write(new Uint8Array(slice));
+    await writer.close();
+    return new Response(ds.readable).arrayBuffer();
   }
   return null;
 }
