@@ -276,8 +276,8 @@ footer{
 footer span{margin:0 8px;opacity:.4}
 
 /* ── Icon Preview ── */
-.icon-field{display:flex;gap:10px;align-items:flex-end}
-.icon-field .field{flex:1}
+.icon-field{display:grid;grid-template-columns:minmax(0,1fr) 42px;gap:10px;align-items:start}
+.icon-field .field{min-width:0}
 .icon-mode{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .icon-mode label{position:relative;display:flex;align-items:center;justify-content:center;height:38px;border:1px solid #e5e5e5;border-radius:8px;background:#fafafa;color:#555;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
 .icon-mode input{position:absolute;opacity:0;pointer-events:none}
@@ -293,6 +293,7 @@ footer span{margin:0 8px;opacity:.4}
 }
 .icon-preview img{width:100%;height:100%;object-fit:cover;display:none}
 .icon-preview-placeholder{width:20px;height:20px;opacity:.25}
+.icon-field > .icon-preview{margin-top:24px}
 .icon-letter{display:none;width:100%;height:100%;align-items:center;justify-content:center;color:#fff;font-size:21px;font-weight:800;font-family:Arial,Helvetica,sans-serif}
 
 
@@ -1563,7 +1564,7 @@ function syncGeneratedIconPreview(){
 function syncIconModeUI(){
   const generated = getIconMode() === 'generated';
   iconGeneratedRow.style.display = generated ? 'grid' : 'none';
-  iconUrlRow.style.display = generated ? 'none' : 'flex';
+  iconUrlRow.style.display = generated ? 'none' : 'grid';
   iconInput.required = false;
   if(generated) syncGeneratedIconPreview();
   else triggerIconPreview(iconInput.value.trim());
