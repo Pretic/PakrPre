@@ -13,7 +13,9 @@
 
 ## 第二步：生成签名 Keystore
 
-进入你 Fork 的仓库 → **Actions** → **gen-keystore** → **Run workflow**
+这一步是正式分发建议项，不是首次体验的必填项。未配置 Keystore Secrets 时，PakrPre 会自动使用稳定开发签名，同一仓库内同一包名可覆盖安装。
+
+如需使用自己的正式签名，进入你 Fork 的仓库 → **Actions** → **gen-keystore** → **Run workflow**
 
 填写密码后运行，完成后在 Actions 日志里复制输出的 **Base64 Keystore 字符串**，备用。
 

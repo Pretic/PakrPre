@@ -36,7 +36,7 @@ PakrPre 是基于原项目二次开发的版本。感谢原作者 **ZSFan / Zhan
 | 云端构建 APK | 前端提交参数后触发 GitHub Actions，自动注入配置、编译、签名并上传 APK |
 | Cloudflare Pages 部署 | 前端页面和 `_worker.js` 合并部署在 Cloudflare Pages，无需单独维护服务器 |
 | 多架构输出 | 同时输出 `arm64-v8a` 和 `armeabi-v7a` APK |
-| Release 签名 | 支持自定义 Keystore；未配置时会使用临时 Debug Key，不建议正式分发 |
+| Release 签名 | 支持自定义 Keystore；未配置时会自动使用稳定开发签名，同包名可覆盖安装，不建议正式分发 |
 | 自定义图标 | 支持在线图标，也支持按 App 名称/包名生成默认图标和自定义十六进制颜色 |
 | 访问身份 | 可选择 `Auto`、`Android`、`iPhone`、`HarmonyOS`、`Android Pad`、`iPad` 等 UA |
 | 可选声明页 | 生成时可选择是否在 App 首次进入时显示免责声明 |
@@ -130,7 +130,7 @@ PakrPre/
 | `KEY_ALIAS` | Key 别名 |
 | `KEY_PASSWORD` | Key 密码 |
 
-> 未配置 Keystore Secrets 时也能构建，但会使用临时 Debug Key。不同次打包签名可能不一致，无法稳定覆盖安装。
+> 未配置 Keystore Secrets 时也能构建。系统会按当前仓库和包名自动生成稳定开发签名，同一仓库内同一包名可覆盖安装；正式分发仍建议配置自己的 Keystore Secrets。
 
 ### 第四步 — 部署到 Cloudflare Pages
 

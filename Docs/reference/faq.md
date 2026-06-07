@@ -13,7 +13,7 @@
 
 ## APK 安装后无法升级覆盖？
 
-说明两次打包使用了不同的签名。需要正确配置 Keystore Secrets（`KEYSTORE_BASE64`、`KEYSTORE_PASSWORD`、`KEY_ALIAS`、`KEY_PASSWORD`），确保每次签名一致。
+说明两次打包使用了不同的签名。当前版本在未配置 Keystore Secrets 时会自动使用稳定开发签名，同一仓库内同一包名应可覆盖安装；正式分发或跨仓库迁移时，仍建议配置自己的 Keystore Secrets（`KEYSTORE_BASE64`、`KEYSTORE_PASSWORD`、`KEY_ALIAS`、`KEY_PASSWORD`）。
 
 ## 打包历史丢了？
 
