@@ -16,4 +16,5 @@ app/build/
 .wrangler/
 .codex-inspect/
 .compare-repos/
+.codex-pr-work/
 *.lnk
