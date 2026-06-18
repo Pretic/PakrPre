@@ -2,15 +2,19 @@ package com.webviewapp
 
 import android.annotation.SuppressLint
 import android.app.DownloadManager
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.os.Environment
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
+import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.PermissionRequest
@@ -61,20 +65,9 @@ class MainActivity : AppCompatActivity() {
         )
         super.onCreate(savedInstanceState)
         if (NO_SCREENSHOT.equals("true", ignoreCase = true)) {
-            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
-        @Suppress("DEPRECATION")
-        window.setFlags(
-            android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN or
-            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-            android.view.WindowManager.LayoutParams.FLAG_FULLSCREEN or
-            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
-        )
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.hide(WindowInsetsCompat.Type.systemBars())
-        controller.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        applyDisplayMode()
         setContentView(R.layout.activity_main)
         webView     = findViewById(R.id.webView)
         progressBar = findViewById(R.id.progressBar)
@@ -92,6 +85,46 @@ class MainActivity : AppCompatActivity() {
         }
         showOverlay()
         setupWebView()
+    }
+
+    private fun applyDisplayMode() {
+        if (WINDOW_MODE.equals("true", ignoreCase = true)) {
+            configureWindowMode()
+        } else {
+            configureFullscreenMode()
+        }
+    }
+
+    private fun configureFullscreenMode() {
+        @Suppress("DEPRECATION")
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+    }
+
+    private fun configureWindowMode() {
+        @Suppress("DEPRECATION")
+        window.clearFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+        window.statusBarColor = Color.WHITE
+        window.navigationBarColor = Color.WHITE
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            show(WindowInsetsCompat.Type.systemBars())
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -120,10 +153,14 @@ class MainActivity : AppCompatActivity() {
                 forceShowOverlay()
             }
 
+            override fun onPageCommitVisible(view: WebView, url: String) {
+                injectWebViewEnhancements(view)
+            }
+
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
                 fetchThemeColor(view)
-                injectElementBlocker(view)
+                injectWebViewEnhancements(view)
                 handler.removeCallbacks(delayHideRunnable)
                 handler.postDelayed(delayHideRunnable, 300)
             }
@@ -290,6 +327,15 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }, "PakrElementBlocker")
+        webView.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun writeText(text: String?) {
+                handler.post {
+                    val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(ClipData.newPlainText("text", text.orEmpty()))
+                }
+            }
+        }, "PakrClipboard")
         webView.settings.userAgentString = configuredUserAgent()
         webView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             swipeRefresh.isEnabled = scrollY == 0
@@ -417,9 +463,9 @@ class MainActivity : AppCompatActivity() {
             <head>
               <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=8,user-scalable=yes">
               <style>
-                html,body{margin:0;width:100%;min-height:100%;background:#000;}
-                body{display:flex;align-items:center;justify-content:center;overflow:auto;}
-                img{display:block;max-width:100%;height:auto;}
+                html,body{margin:0;width:100%;height:100%;min-height:100%;background:#000;}
+                body{display:grid;place-items:center;overflow:auto;box-sizing:border-box;}
+                img{display:block;max-width:100vw;max-height:100vh;width:auto;height:auto;object-fit:contain;margin:auto;}
               </style>
             </head>
             <body><img src="$safeUrl" alt=""></body>
@@ -470,6 +516,72 @@ class MainActivity : AppCompatActivity() {
             return
         }
         view.evaluateJavascript(script, null)
+    }
+
+    private fun injectClipboardBridge(view: WebView) {
+        val script = """
+            (function() {
+                if (window.__pakrClipboardBridgeReady) return;
+                window.__pakrClipboardBridgeReady = true;
+
+                function nativeWriteText(value) {
+                    try {
+                        if (window.PakrClipboard && window.PakrClipboard.writeText) {
+                            window.PakrClipboard.writeText(String(value == null ? "" : value));
+                            return Promise.resolve();
+                        }
+                    } catch (error) {
+                        return Promise.reject(error);
+                    }
+                    return Promise.reject(new Error("Native clipboard bridge unavailable"));
+                }
+
+                var clipboard = {};
+                try {
+                    var current = navigator.clipboard || {};
+                    Object.getOwnPropertyNames(current).forEach(function (key) {
+                        try {
+                            var value = current[key];
+                            clipboard[key] = typeof value === "function" ? value.bind(current) : value;
+                        } catch (_) {}
+                    });
+                } catch (_) {}
+                clipboard.writeText = nativeWriteText;
+
+                try {
+                    Object.defineProperty(navigator, "clipboard", {
+                        configurable: true,
+                        get: function () { return clipboard; }
+                    });
+                } catch (_) {
+                    try { navigator.clipboard = clipboard; } catch (ignored) {}
+                }
+
+                if (navigator.permissions && navigator.permissions.query) {
+                    var originalQuery = navigator.permissions.query.bind(navigator.permissions);
+                    navigator.permissions.query = function (descriptor) {
+                        var name = descriptor && descriptor.name;
+                        if (name === "clipboard-write" || name === "clipboard-read") {
+                            return Promise.resolve({ state: "granted", onchange: null });
+                        }
+                        return originalQuery(descriptor);
+                    };
+                }
+
+                document.addEventListener("copy", function () {
+                    try {
+                        var selected = window.getSelection && String(window.getSelection());
+                        if (selected) nativeWriteText(selected);
+                    } catch (_) {}
+                }, true);
+            })();
+        """.trimIndent()
+        view.evaluateJavascript(script, null)
+    }
+
+    private fun injectWebViewEnhancements(view: WebView) {
+        injectClipboardBridge(view)
+        injectElementBlocker(view)
     }
 
     private fun showOverlay() {
@@ -618,6 +730,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         const val APP_URL = "{{APP_URL}}"
         private const val NO_SCREENSHOT = "{{NO_SCREENSHOT}}"
+        private const val WINDOW_MODE = "{{WINDOW_MODE}}"
         private const val UA_MODE = "{{UA_MODE}}"
         private const val ANDROID_MOBILE_UA = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
         private const val FILE_CHOOSER_REQUEST = 1001

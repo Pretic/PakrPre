@@ -1,16 +1,22 @@
 package com.webviewapp
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
+import android.view.WindowManager
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 class DisclaimerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applyDisplayMode()
         setContentView(R.layout.activity_disclaimer)
 
         findViewById<TextView>(R.id.tvDisclaimerBody).text = buildString {
@@ -71,6 +77,46 @@ class DisclaimerActivity : AppCompatActivity() {
         btnAccept.setOnClickListener { proceed() }
     }
 
+    private fun applyDisplayMode() {
+        if (WINDOW_MODE.equals("true", ignoreCase = true)) {
+            configureWindowMode()
+        } else {
+            configureFullscreenMode()
+        }
+    }
+
+    private fun configureFullscreenMode() {
+        @Suppress("DEPRECATION")
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+    }
+
+    private fun configureWindowMode() {
+        @Suppress("DEPRECATION")
+        window.clearFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+        window.statusBarColor = Color.WHITE
+        window.navigationBarColor = Color.WHITE
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            show(WindowInsetsCompat.Type.systemBars())
+            isAppearanceLightStatusBars = true
+            isAppearanceLightNavigationBars = true
+        }
+    }
+
     private fun proceed() {
         getSharedPreferences("app_prefs", MODE_PRIVATE)
             .edit()
@@ -80,5 +126,9 @@ class DisclaimerActivity : AppCompatActivity() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         })
         finish()
+    }
+
+    companion object {
+        private const val WINDOW_MODE = "{{WINDOW_MODE}}"
     }
 }

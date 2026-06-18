@@ -24,6 +24,8 @@ param(
 
     [switch]$NoScreenshot,
 
+    [switch]$WindowMode,
+
     [switch]$ShowDisclaimer,
 
     [switch]$Install
@@ -39,7 +41,8 @@ function Replace-InFile {
     )
     $text = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
     $text = $text.Replace($Old, $New)
-    Set-Content -LiteralPath $Path -Value $text -Encoding UTF8
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Path, $text, $utf8NoBom)
 }
 
 function Escape-XmlText {
@@ -53,7 +56,8 @@ $workDir = Join-Path $root "build\local-work\$buildId"
 New-Item -ItemType Directory -Path $workDir -Force | Out-Null
 
 $excludedNames = @(
-    ".git", "build", ".gradle", ".wrangler", ".deploy-pages", ".codex-inspect", ".compare-repos",
+    ".git", "build", ".gradle", ".gradle-user-home", ".wrangler", ".deploy-pages", ".codex-inspect", ".compare-repos",
+    "PakrPre-clean", "PakrPre-api-clean", "clean-work-test", "git-init-test", "git-write-test",
     "local.properties"
 )
 $excludedExtensions = @(".jks", ".keystore", ".p12", ".pem", ".key", ".lnk")
@@ -61,6 +65,9 @@ $excludedExtensions = @(".jks", ".keystore", ".p12", ".pem", ".key", ".lnk")
 Get-ChildItem -LiteralPath $root -Force |
     Where-Object {
         $_.Name -notin $excludedNames -and
+        -not $_.Name.StartsWith("codex-build-check-") -and
+        -not $_.Name.StartsWith(".codex-build-check-") -and
+        -not $_.Name.StartsWith("remote-pakrpre-") -and
         -not $_.Name.StartsWith(".env") -and
         $_.Extension -notin $excludedExtensions
     } |
@@ -73,15 +80,20 @@ $manifest = Join-Path $workDir "app\src\main\AndroidManifest.xml"
 $strings = Join-Path $workDir "app\src\main\res\values\strings.xml"
 $mainActivity = Join-Path $workDir "app\src\main\java\com\webviewapp\MainActivity.kt"
 $splashActivity = Join-Path $workDir "app\src\main\java\com\webviewapp\SplashActivity.kt"
+$disclaimerActivity = Join-Path $workDir "app\src\main\java\com\webviewapp\DisclaimerActivity.kt"
 
 $versionCode = [int][DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 $noScreenshotValue = if ($NoScreenshot) { "true" } else { "false" }
+$windowModeValue = if ($WindowMode) { "true" } else { "false" }
 $showDisclaimerValue = if ($ShowDisclaimer) { "true" } else { "false" }
 $appNameXml = Escape-XmlText $AppName
 
 Replace-InFile $mainActivity "{{APP_URL}}" $AppUrl
 Replace-InFile $mainActivity "{{NO_SCREENSHOT}}" $noScreenshotValue
 Replace-InFile $mainActivity "{{UA_MODE}}" $UaMode
+Replace-InFile $mainActivity "{{WINDOW_MODE}}" $windowModeValue
+Replace-InFile $splashActivity "{{WINDOW_MODE}}" $windowModeValue
+Replace-InFile $disclaimerActivity "{{WINDOW_MODE}}" $windowModeValue
 Replace-InFile $splashActivity "{{SHOW_DISCLAIMER}}" $showDisclaimerValue
 Replace-InFile $appBuild "{{APP_PACKAGE}}" $PackageName
 Replace-InFile $strings "{{APP_NAME}}" $appNameXml

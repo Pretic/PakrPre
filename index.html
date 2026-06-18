@@ -492,6 +492,30 @@ footer span{margin:0 8px;opacity:.4}
 [data-theme="dark"] .log-line.step{background:rgba(59,130,246,.14);color:#93c5fd}
 [data-theme="dark"] .log-line.step .log-line-badge{background:rgba(59,130,246,.28);color:#bfdbfe}
 
+/* 上游同步面板 */
+#syncOverlay{display:none;position:fixed;inset:0;z-index:1003;background:rgba(0,0,0,0.15);backdrop-filter:blur(2px)}
+#syncPanel{
+  position:fixed;top:0;right:0;bottom:0;width:420px;max-width:96vw;
+  background:var(--bg,#fff);z-index:1004;box-shadow:-4px 0 32px rgba(0,0,0,0.14);
+  display:flex;flex-direction:column;border-radius:20px 0 0 20px;
+  transform:translateX(100%);transition:transform .28s cubic-bezier(0.32,0,0.15,1);
+  overflow:hidden;border-left:1px solid var(--border,#e8e8e8);
+}
+#syncPanel.open{transform:translateX(0)}
+#syncOverlay.open{display:block}
+.sync-body{padding:14px 18px;display:flex;flex-direction:column;gap:12px}
+.sync-target{border:1px solid var(--border2,#efefef);border-radius:10px;padding:10px 12px;background:var(--surface,#f9f9f9);font-size:12px;color:var(--muted,#666);line-height:1.6}
+.sync-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sync-action-btn{height:40px;border:0;border-radius:9px;background:#111;color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+.sync-action-btn.secondary{background:var(--surface2,#f5f5f5);color:var(--text,#111);border:1px solid var(--border2,#efefef)}
+.sync-action-btn:disabled{opacity:.5;cursor:not-allowed}
+.sync-progress-wrap{height:5px;background:var(--surface2,#f5f5f5);border-radius:999px;overflow:hidden}
+.sync-progress{height:100%;width:0;background:#111;border-radius:999px;transition:width .25s}
+.sync-status{font-size:12px;color:var(--muted,#666);line-height:1.6;word-break:break-word}
+.sync-status a{color:inherit;font-weight:700}
+.sync-log{min-height:180px;max-height:38vh;overflow:auto;border-radius:10px;background:var(--surface,#f9f9f9);padding:10px;font:11px/1.55 ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;color:var(--muted,#666);white-space:pre-wrap;word-break:break-word}
+[data-theme="dark"] .sync-action-btn{background:#e6edf3;color:#0d1117}
+
 /* ── Dark Mode ── */
 :root{
   --bg:#fff;--surface:#f9f9f9;--surface2:#f5f5f5;
@@ -612,6 +636,9 @@ footer{border-top-color:var(--border);color:var(--faint)}
     <button id="logBtn" class="nav-tool" title="详细日志" onclick="toggleLogPanel()" type="button" aria-label="详细日志">
       <svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
     </button>
+    <button id="syncBtn" class="nav-tool" title="上游同步" onclick="toggleSyncPanel()" type="button" aria-label="上游同步">
+      <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </button>
     <a href="Docs/index.html" target="_blank" class="nav-tool" title="文档" aria-label="文档">
       <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
     </a>
@@ -652,9 +679,37 @@ footer{border-top-color:var(--border);color:var(--faint)}
     </div>
   </div>
   <div class="log-panel-meta" id="logMeta">开始打包后会显示 GitHub Actions 详细日志。</div>
-  <div class="log-stream" id="logStream">
+<div class="log-stream" id="logStream">
     <div class="log-empty">暂无日志</div>
   </div>
+</div>
+
+<div id="syncOverlay" onclick="toggleSyncPanel(false)"></div>
+<div id="syncPanel">
+  <div class="log-panel-head">
+    <span>上游同步</span>
+    <div class="log-panel-tools">
+      <button class="log-panel-btn" type="button" title="刷新状态" aria-label="刷新状态" onclick="refreshSyncNow()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+      <button class="log-panel-btn" type="button" title="关闭" aria-label="关闭" onclick="toggleSyncPanel(false)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="sync-body">
+    <div class="sync-target">
+      <div>上游：Pretic/PakrPre main</div>
+      <div>方式：创建同步 PR，合并后由 Cloudflare Pages 自动部署</div>
+    </div>
+    <div class="sync-actions">
+      <button class="sync-action-btn secondary" id="syncCheckBtn" type="button" onclick="startSync('check')">检查更新</button>
+      <button class="sync-action-btn" id="syncPrBtn" type="button" onclick="startSync('pr')">创建 PR</button>
+    </div>
+    <div class="sync-progress-wrap"><div class="sync-progress" id="syncProgress"></div></div>
+    <div class="sync-status" id="syncStatus">尚未开始同步检查。</div>
+  </div>
+  <div class="sync-log" id="syncLog">暂无同步日志</div>
 </div>
 
 
@@ -732,6 +787,17 @@ footer{border-top-color:var(--border);color:var(--faint)}
           </div>
           <label class="toggle-switch">
             <input type="checkbox" id="f_no_screenshot">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">窗口模式</div>
+            <div class="toggle-desc">开启后显示手机状态栏，关闭则使用全屏模式</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="f_window_mode">
             <span class="toggle-track"></span>
             <span class="toggle-thumb"></span>
           </label>
@@ -916,6 +982,13 @@ const logPanel  = document.getElementById('logPanel');
 const logOverlay = document.getElementById('logOverlay');
 const logStream = document.getElementById('logStream');
 const logMeta   = document.getElementById('logMeta');
+const syncPanel = document.getElementById('syncPanel');
+const syncOverlay = document.getElementById('syncOverlay');
+const syncCheckBtn = document.getElementById('syncCheckBtn');
+const syncPrBtn = document.getElementById('syncPrBtn');
+const syncProgress = document.getElementById('syncProgress');
+const syncStatus = document.getElementById('syncStatus');
+const syncLog = document.getElementById('syncLog');
 
 function clearErrDetails(){
   document.querySelectorAll('#statusBox .err-detail').forEach(el => el.remove());
@@ -1053,9 +1126,139 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function toggleSyncPanel(open){
+  const willOpen = typeof open === 'boolean' ? open : !syncPanel.classList.contains('open');
+  syncPanel.classList.toggle('open', willOpen);
+  syncOverlay.classList.toggle('open', willOpen);
+}
+
+function setSyncBusy(v){
+  syncBusy = !!v;
+  syncCheckBtn.disabled = syncBusy;
+  syncPrBtn.disabled = syncBusy;
+}
+
+function setSyncProgress(value){
+  syncProgress.style.width = Math.max(0, Math.min(100, Number(value) || 0)) + '%';
+}
+
+function setSyncMessage(html){
+  syncStatus.innerHTML = html;
+}
+
+function setSyncLog(lines){
+  if(!Array.isArray(lines) || !lines.length){
+    syncLog.textContent = '暂无同步日志';
+    return;
+  }
+  syncLog.textContent = lines.slice(-220).join('\n');
+  syncLog.scrollTop = syncLog.scrollHeight;
+}
+
+function refreshSyncNow(){
+  if(!currentSync){
+    setSyncMessage('尚未开始同步检查。');
+    setSyncLog([]);
+    return;
+  }
+  pollSyncStatus(true);
+}
+
+async function startSync(mode){
+  if(syncBusy) return;
+  toggleSyncPanel(true);
+  setSyncBusy(true);
+  setSyncProgress(8);
+  setSyncLog(['正在提交同步任务...']);
+  setSyncMessage(mode === 'pr' ? '正在创建同步 PR 任务...' : '正在检查上游更新...');
+  currentSync = null;
+  if(syncTimer){
+    clearInterval(syncTimer);
+    syncTimer = null;
+  }
+
+  try{
+    const endpoint = mode === 'pr' ? '/sync/start' : '/sync/check';
+    const res = await fetch(WORKER + endpoint, { method:'POST', headers:{'Content-Type':'application/json'} });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || data.detail || '同步任务提交失败');
+    currentSync = data;
+    setSyncMessage('同步任务已提交，等待 GitHub Actions 启动。');
+    setSyncLog(['sync_id=' + data.sync_id, 'mode=' + data.mode, 'upstream=' + data.upstream_repo + '/' + data.upstream_branch]);
+    pollSyncStatus(true);
+    syncTimer = setInterval(() => pollSyncStatus(false), 5000);
+  }catch(error){
+    setSyncBusy(false);
+    setSyncProgress(0);
+    setSyncMessage('同步任务提交失败：' + escapeHtml(error.message || '网络错误'));
+    setSyncLog([error.message || String(error)]);
+  }
+}
+
+async function pollSyncStatus(showLoading){
+  if(!currentSync) return;
+  try{
+    const qs = currentSync.run_id
+      ? 'run_id=' + encodeURIComponent(currentSync.run_id)
+      : 'sync_id=' + encodeURIComponent(currentSync.sync_id || '');
+    const res = await fetch(WORKER + '/sync/status?' + qs);
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || '同步状态读取失败');
+    currentSync = Object.assign({}, currentSync, data);
+    renderSyncStatus(data);
+    if(data.run_id) fetchSyncLogs(data.run_id);
+
+    if(data.status === 'completed'){
+      if(syncTimer){
+        clearInterval(syncTimer);
+        syncTimer = null;
+      }
+      setSyncBusy(false);
+    }
+  }catch(error){
+    if(showLoading) setSyncLog([error.message || String(error)]);
+    setSyncMessage('同步状态读取失败：' + escapeHtml(error.message || '网络错误'));
+  }
+}
+
+function renderSyncStatus(data){
+  setSyncProgress(data.progress || (data.status === 'completed' ? 100 : 15));
+  if(data.waiting_run_id){
+    setSyncMessage('GitHub Actions 任务排队中，等待运行编号。');
+    return;
+  }
+  const parts = [];
+  if(data.run_id) parts.push('Run #' + escapeHtml(data.run_id));
+  if(data.status) parts.push('状态：' + escapeHtml(data.status));
+  if(data.current_step) parts.push('步骤：' + escapeHtml(data.current_step));
+  if(data.sync_status) parts.push('结果：' + escapeHtml(data.sync_status));
+  if(data.failed_step) parts.push('失败步骤：' + escapeHtml(data.failed_step));
+  if(data.pr_url) parts.push('<a href="' + escapeHtml(data.pr_url) + '" target="_blank" rel="noopener">打开同步 PR</a>');
+  else if(data.html_url) parts.push('<a href="' + escapeHtml(data.html_url) + '" target="_blank" rel="noopener">打开 Actions</a>');
+
+  if(data.status === 'completed' && data.conclusion === 'success' && !data.pr_url && data.sync_status === 'up_to_date'){
+    parts.push('当前仓库已是最新。');
+  }
+  if(data.status === 'completed' && data.conclusion === 'failure'){
+    parts.push('同步失败，请查看日志。');
+  }
+  setSyncMessage(parts.join('<br>') || '正在读取同步状态...');
+}
+
+async function fetchSyncLogs(runId){
+  try{
+    const res = await fetch(WORKER + '/sync/logs?run_id=' + encodeURIComponent(runId));
+    const data = await res.json();
+    if(res.ok && Array.isArray(data.lines)) setSyncLog(data.lines);
+  }catch(_){}
+}
+
 
 let pollTimer = null;
 let logTimer = null;
+let syncTimer = null;
+let syncBusy = false;
+let currentSync = null;
 let busy = false;
 let buildStartTime = 0;
 let currentRunId = null;
@@ -1137,6 +1340,7 @@ async function handleBuildClick(){
     icon_url:      getIconMode() === 'url' ? getImageIconUrl() : '',
     icon_color:    normalizeHexColor(document.getElementById('f_icon_color').value),
     no_screenshot: document.getElementById('f_no_screenshot').checked ? 'true' : 'false',
+    window_mode:   document.getElementById('f_window_mode').checked ? 'true' : 'false',
     show_disclaimer: document.getElementById('f_show_disclaimer').checked ? 'true' : 'false',
 
   };
@@ -1458,7 +1662,7 @@ function renderDownloadButtons(data, runId){
 }
 
 const SAVE_KEYS = ['f_url','f_name','f_pkg','f_ver','f_icon','f_icon_color'];
-const SAVE_CHECK_KEYS = ['f_no_screenshot','f_show_disclaimer'];
+const SAVE_CHECK_KEYS = ['f_no_screenshot','f_window_mode','f_show_disclaimer'];
 function saveForm(){
   const saved = {};
   SAVE_KEYS.forEach(id => { saved[id] = document.getElementById(id).value; });
@@ -1707,6 +1911,7 @@ function renderHistory(){
       if(mode) mode.checked = true;
       const uaMode = document.getElementById('f_ua_mode');
       if(uaMode) uaMode.value = item.ua_mode || 'auto';
+      document.getElementById('f_window_mode').checked = !!item.window_mode;
       document.getElementById('f_show_disclaimer').checked = !!item.show_disclaimer;
       saveForm();
       syncIconModeUI();
@@ -1744,6 +1949,7 @@ function addHistory(data){
     ua_mode:      getUaMode(),
     icon_url:     getIconMode() === 'url' ? getImageIconUrl() : '',
     icon_color:   normalizeHexColor(document.getElementById('f_icon_color').value),
+    window_mode:  document.getElementById('f_window_mode').checked,
     show_disclaimer: document.getElementById('f_show_disclaimer').checked,
     app_url:      document.getElementById('f_url').value.trim(),
     artifacts:    data.artifacts || (data.artifact_id ? [{id:data.artifact_id,name:data.artifact_name||'APK'}] : []),
