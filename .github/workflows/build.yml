@@ -40,6 +40,10 @@ on:
         description: Disable screenshot (true/false)
         required: false
         default: "false"
+      window_mode:
+        description: Show system status bar instead of immersive fullscreen (true/false)
+        required: false
+        default: "false"
       show_disclaimer:
         description: Show app disclaimer on first launch (true/false)
         required: false
@@ -99,6 +103,12 @@ jobs:
           sed -i "s|{{NO_SCREENSHOT}}|${NO_SS:-false}|g" app/src/main/java/com/webviewapp/MainActivity.kt
           UA_MODE="${{ github.event.inputs.ua_mode }}"
           sed -i "s|{{UA_MODE}}|${UA_MODE:-auto}|g" app/src/main/java/com/webviewapp/MainActivity.kt
+
+          WINDOW_MODE="${{ github.event.inputs.window_mode }}"
+          sed -i "s|{{WINDOW_MODE}}|${WINDOW_MODE:-false}|g" \
+            app/src/main/java/com/webviewapp/MainActivity.kt \
+            app/src/main/java/com/webviewapp/SplashActivity.kt \
+            app/src/main/java/com/webviewapp/DisclaimerActivity.kt
 
           SHOW_DISC="${{ github.event.inputs.show_disclaimer }}"
           sed -i "s|{{SHOW_DISCLAIMER}}|${SHOW_DISC:-false}|g" app/src/main/java/com/webviewapp/SplashActivity.kt

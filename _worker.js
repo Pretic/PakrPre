@@ -25,6 +25,10 @@ export default {
       else if (url.pathname === '/logs'     && request.method === 'GET')  res = await handleLogs(request, env);
       else if (url.pathname === '/download' && request.method === 'GET')  res = await handleDownload(request, env);
       else if (url.pathname === '/cancel'   && request.method === 'POST') res = await handleCancel(request, env);
+      else if (url.pathname === '/sync/check'  && request.method === 'POST') res = await handleSyncTrigger(request, env, 'check');
+      else if (url.pathname === '/sync/start'  && request.method === 'POST') res = await handleSyncTrigger(request, env, 'pr');
+      else if (url.pathname === '/sync/status' && request.method === 'GET')  res = await handleSyncStatus(request, env);
+      else if (url.pathname === '/sync/logs'   && request.method === 'GET')  res = await handleSyncLogs(request, env);
       else return serveAsset(request, env);
       return cors(res, env);
     } catch (e) {
@@ -121,7 +125,7 @@ function logoutResponse() {
 
 function authRequired(request) {
   const path = new URL(request.url).pathname;
-  const apiPath = ['/build', '/status', '/logs', '/cancel'].includes(path);
+  const apiPath = ['/build', '/status', '/logs', '/cancel', '/sync/check', '/sync/start', '/sync/status', '/sync/logs'].includes(path);
   if (!apiPath || request.headers.get('Accept')?.includes('text/html')) {
     return loginPage(request, {}, '', 401);
   }
@@ -215,7 +219,7 @@ function escapeHtml(s) {
 }
 
 async function handleBuild(request, env) {
-  const { app_url, app_name, package_name, version_name, icon_mode, ua_mode, icon_url, icon_color, no_screenshot, show_disclaimer } = await request.json();
+  const { app_url, app_name, package_name, version_name, icon_mode, ua_mode, icon_url, icon_color, no_screenshot, window_mode, show_disclaimer } = await request.json();
   const buildId = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
   if (!app_url || !app_name || !package_name || !version_name)
     return json({ error: 'Missing required fields' }, 400);
@@ -250,6 +254,7 @@ async function handleBuild(request, env) {
           icon_url: resolvedIconUrl,
           icon_color: resolvedIconColor,
           no_screenshot: no_screenshot||'false',
+          window_mode: window_mode||'false',
           show_disclaimer: show_disclaimer||'false',
           build_id: buildId
         }
@@ -568,6 +573,172 @@ async function readZipEntry(buf, dataOffset, compSize, compression) {
     return new Response(ds.readable).arrayBuffer();
   }
   return null;
+}
+
+async function requireSyncAdmin(request, env) {
+  if (!authEnabled(env)) {
+    return json({ error: 'Upstream sync requires ADMIN_PASSWORD to be configured.' }, 403);
+  }
+  if (!(await isAuthorized(request, env))) return authRequired(request);
+  return null;
+}
+
+function syncUpstreamRepo(env) {
+  const repo = String(env.UPSTREAM_REPO || 'Pretic/PakrPre').trim();
+  if (repo !== 'Pretic/PakrPre') {
+    throw new Error('UPSTREAM_REPO is not allowed. Allowed value: Pretic/PakrPre');
+  }
+  return repo;
+}
+
+function syncUpstreamBranch(env) {
+  const branch = String(env.UPSTREAM_BRANCH || 'main').trim();
+  if (branch !== 'main') {
+    throw new Error('UPSTREAM_BRANCH is not allowed. Allowed value: main');
+  }
+  return branch;
+}
+
+async function handleSyncTrigger(request, env, mode) {
+  const denied = await requireSyncAdmin(request, env);
+  if (denied) return denied;
+
+  const syncId = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+  const upstreamRepo = syncUpstreamRepo(env);
+  const upstreamBranch = syncUpstreamBranch(env);
+  const r = await gh(env,
+    `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/sync-upstream.yml/dispatches`,
+    { method: 'POST', body: JSON.stringify({
+        ref: 'main',
+        inputs: {
+          sync_id: syncId,
+          mode,
+          upstream_repo: upstreamRepo,
+          upstream_branch: upstreamBranch,
+        }
+    })}
+  );
+  if (r.status !== 204) return json({ error: 'Sync trigger failed', detail: await r.text() }, 500);
+
+  return json({
+    status: 'queued',
+    mode,
+    sync_id: syncId,
+    upstream_repo: upstreamRepo,
+    upstream_branch: upstreamBranch,
+    dispatched_at: new Date().toISOString(),
+  });
+}
+
+async function handleSyncStatus(request, env) {
+  const denied = await requireSyncAdmin(request, env);
+  if (denied) return denied;
+
+  const u = new URL(request.url);
+  let runId = u.searchParams.get('run_id');
+  const syncId = u.searchParams.get('sync_id');
+  if (!runId && syncId) {
+    const runsRes = await gh(env,
+      `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/workflows/sync-upstream.yml/runs?event=workflow_dispatch&per_page=20`
+    );
+    const runs = await runsRes.json();
+    const matched = (runs.workflow_runs || []).find(r => (r.display_title || '').includes(syncId));
+    if (!matched) return json({ status: 'queued', waiting_run_id: true, sync_id: syncId });
+    runId = matched.id;
+  }
+
+  if (!runId) return json({ error: 'Missing run_id or sync_id' }, 400);
+  const run = await (await gh(env,
+    `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}`
+  )).json();
+
+  const result = {
+    run_id: runId,
+    sync_id: syncId || null,
+    status: run.status,
+    conclusion: run.conclusion,
+    html_url: run.html_url || null,
+    progress: run.status === 'completed' ? 100 : 10,
+    current_step: '',
+    step_index: 0,
+    step_total: 0,
+    sync_status: '',
+    pr_url: '',
+    failed_step: '',
+  };
+
+  const jobsRes = await gh(env,
+    `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/jobs`
+  );
+  const jobs = await jobsRes.json();
+  const job = jobs.jobs?.[0];
+  if (job) {
+    const steps = job.steps || [];
+    const userSteps = steps.filter(s => !['Set up job','Post','Complete job'].some(k => s.name.includes(k)));
+    result.step_total = userSteps.length;
+    for (const step of userSteps) {
+      if (step.status === 'completed' && step.conclusion === 'success') result.step_index++;
+      if (step.status === 'in_progress') result.current_step = step.name;
+    }
+    const pctByStep = result.step_total ? Math.round((result.step_index / result.step_total) * 90) : 10;
+    result.progress = run.status === 'completed' ? 100 : Math.max(10, Math.min(95, pctByStep));
+    const failed = steps.find(s => s.conclusion === 'failure');
+    if (failed) result.failed_step = failed.name;
+
+    if (run.status === 'completed') {
+      const logText = await fetchJobLogText(env, job.id);
+      Object.assign(result, parseSyncLogInfo(logText));
+    }
+  }
+
+  return json(result);
+}
+
+async function handleSyncLogs(request, env) {
+  const denied = await requireSyncAdmin(request, env);
+  if (denied) return denied;
+
+  const p = new URL(request.url).searchParams;
+  const runId = p.get('run_id'), jobId = p.get('job_id');
+  if (!runId) return json({ lines: [] });
+  let jid = jobId;
+  if (!jid) {
+    const jr = await gh(env, `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/runs/${runId}/jobs`);
+    const jd = await jr.json();
+    jid = jd.jobs?.[0]?.id;
+  }
+  if (!jid) return json({ lines: [] });
+  const raw = await fetchJobLogText(env, jid);
+  return json({ lines: cleanGitHubLogLines(raw).slice(-350) });
+}
+
+async function fetchJobLogText(env, jobId) {
+  try {
+    const lr = await gh(env, `/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/actions/jobs/${jobId}/logs`);
+    if (!lr.ok) return '';
+    return await lr.text();
+  } catch (_) {
+    return '';
+  }
+}
+
+function cleanGitHubLogLines(raw) {
+  return String(raw || '').split('\n')
+    .map(l => l.replace(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z /, '').replace(/\x1b\[[\d;]*m/g,'').trim())
+    .filter(l => l &&
+      !/^##\[group|^##\[endgroup/i.test(l) &&
+      !/^shell:|^env:|^with:|JAVA_HOME|ANDROID_HOME|GRADLE_USER/i.test(l)
+    );
+}
+
+function parseSyncLogInfo(raw) {
+  const text = String(raw || '');
+  const pr = text.match(/SYNC_PR_URL=(https:\/\/\S+)/);
+  const syncStatus = text.match(/SYNC_STATUS=([a-z_]+)/);
+  return {
+    pr_url: pr ? pr[1] : '',
+    sync_status: syncStatus ? syncStatus[1] : '',
+  };
 }
 
 function gh(env, path, opts = {}) {
